@@ -1,0 +1,38 @@
+import { cn } from "@/lib/utils"
+import { type Driver, driverTeam } from "@/lib/f1-data"
+
+export function DriverAvatar({
+  driver,
+  size = "md",
+  className,
+}: {
+  driver: Driver
+  size?: "sm" | "md" | "lg"
+  className?: string
+}) {
+  const team = driverTeam(driver.id)
+  const dim =
+    size === "lg" ? "size-14 text-base" : size === "sm" ? "size-9 text-xs" : "size-11 text-sm"
+  return (
+    <div
+      className={cn(
+        "relative flex shrink-0 items-center justify-center rounded-full font-heading font-bold text-foreground",
+        dim,
+        className,
+      )}
+      style={{
+        background: `radial-gradient(circle at 30% 25%, ${team.color}40, transparent 70%), oklch(0.27 0.006 285)`,
+        boxShadow: `inset 0 0 0 2px ${team.color}`,
+      }}
+      aria-hidden="true"
+    >
+      {driver.code}
+      <span
+        className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full text-[10px] font-bold leading-none"
+        style={{ backgroundColor: team.color, color: "#0a0a0b" }}
+      >
+        {driver.number}
+      </span>
+    </div>
+  )
+}
