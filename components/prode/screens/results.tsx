@@ -44,7 +44,7 @@ function DriverLine({
   )
 }
 
-export function Resultados() {
+export function Results() {
   const total = scoreBreakdown.reduce((a, b) => a + b.points, 0)
 
   // compute correctness for my top5 vs official

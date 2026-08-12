@@ -87,7 +87,7 @@ export type Team = {
     city: "Monza",
     country: "Italia",
     flag: "🇮🇹",
-    date: "2026-06-21T13:00:00Z",
+    date: "2026-08-14T13:00:00Z",
     status: "abiertas",
   }
   

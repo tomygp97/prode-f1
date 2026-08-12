@@ -31,7 +31,7 @@ function Stat({
   )
 }
 
-export function Perfil() {
+export function Profile() {
   return (
     <div className="space-y-5 px-4 py-5">
       {/* Header card */}

@@ -15,7 +15,7 @@ import { useNav } from "@/components/prode/nav-context"
 import { league } from "@/lib/f1-data"
 import { cn } from "@/lib/utils"
 
-export function Ligas() {
+export function Leagues() {
   const { navigate } = useNav()
   const [tab, setTab] = useState<"crear" | "unirse">("crear")
   const [leagueName, setLeagueName] = useState("")

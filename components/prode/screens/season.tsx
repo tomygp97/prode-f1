@@ -7,7 +7,7 @@ import { DriverPicker, DriverSlot } from "@/components/prode/driver-picker"
 import { teams } from "@/lib/f1-data"
 import { cn } from "@/lib/utils"
 
-export function Temporada() {
+export function Season() {
   const { navigate } = useNav()
   const [champion, setChampion] = useState<string | undefined>()
   const [constructor, setConstructor] = useState<string | undefined>()

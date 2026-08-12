@@ -15,12 +15,12 @@ import {
 } from "lucide-react"
 import { useNav } from "@/components/prode/nav-context"
 import {
-  nextGP,
   league,
   myRank,
   myPoints,
 } from "@/lib/f1-data"
 import { cn } from "@/lib/utils"
+import { useNextGP } from "@/hooks/use-next-gp"
 
 function useCountdown(target: string) {
   const [now, setNow] = useState<number | null>(null)
@@ -53,7 +53,17 @@ function CountdownBox({ value, label }: { value: number; label: string }) {
 
 export function Dashboard() {
   const { navigate } = useNav()
-  const c = useCountdown(nextGP.date)
+  const { nextGP, isLoading, error } = useNextGP()
+  const c = useCountdown(nextGP?.date ?? "")
+  if (isLoading) {
+    return <div className="px-4 py-5 text-muted-foreground">Cargando...</div>
+  }
+  if (error) {
+    return <div className="px-4 py-5 text-destructive">{error}</div>
+  }
+  if (!nextGP) {
+    return <div className="px-4 py-5 text-muted-foreground">No hay próximo GP</div>
+  }
   const top5 = league.members.slice(0, 5)
   const me = league.members.find((m) => m.isMe)
 

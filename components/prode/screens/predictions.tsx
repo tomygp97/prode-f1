@@ -51,7 +51,7 @@ function SectionCard({
   )
 }
 
-export function Predicciones() {
+export function Predictions() {
   const { navigate } = useNav()
   const [pole, setPole] = useState<string | undefined>()
   const [top5, setTop5] = useState<(string | undefined)[]>([undefined, undefined, undefined, undefined, undefined])

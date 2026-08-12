@@ -5,12 +5,12 @@ import { Bell } from "lucide-react"
 import { BottomNav } from "@/components/prode/bottom-nav"
 import { NavContext, type Screen } from "@/components/prode/nav-context"
 import { Dashboard } from "@/components/prode/screens/dashboard"
-import { Predicciones } from "@/components/prode/screens/predicciones"
-import { Resultados } from "@/components/prode/screens/resultados"
+import { Predictions } from "@/components/prode/screens/predictions"
+import { Results } from "@/components/prode/screens/results"
 import { Ranking } from "@/components/prode/screens/ranking"
-import { Perfil } from "@/components/prode/screens/perfil"
-import { Temporada } from "@/components/prode/screens/temporada"
-import { Ligas } from "@/components/prode/screens/ligas"
+import { Profile } from "@/components/prode/screens/profile"
+import { Season } from "@/components/prode/screens/season"
+import { Leagues } from "@/components/prode/screens/leagues"
 
 export default function Page() {
   const [screen, setScreen] = useState<Screen>("inicio")
@@ -48,12 +48,12 @@ export default function Page() {
 
         <main key={screen} className="animate-in fade-in slide-in-from-bottom-1 duration-300">
           {screen === "inicio" && <Dashboard />}
-          {screen === "predicciones" && <Predicciones />}
-          {screen === "resultados" && <Resultados />}
+          {screen === "predicciones" && <Predictions />}
+          {screen === "resultados" && <Results />}
           {screen === "ranking" && <Ranking />}
-          {screen === "perfil" && <Perfil />}
-          {screen === "temporada" && <Temporada />}
-          {screen === "ligas" && <Ligas />}
+          {screen === "perfil" && <Profile />}
+          {screen === "temporada" && <Season />}
+          {screen === "ligas" && <Leagues />}
         </main>
 
         <BottomNav />
