@@ -79,18 +79,6 @@ export type Team = {
     status: "abiertas" | "cerradas"
   }
   
-  export const nextGP: GrandPrix = {
-    id: "monza",
-    round: 16,
-    name: "GP de Italia",
-    circuit: "Autodromo Nazionale Monza",
-    city: "Monza",
-    country: "Italia",
-    flag: "🇮🇹",
-    date: "2026-08-14T13:00:00Z",
-    status: "abiertas",
-  }
-  
   export type LeagueMember = {
     id: string
     name: string

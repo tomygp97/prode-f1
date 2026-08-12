@@ -14,9 +14,10 @@ import {
   Plus,
 } from "lucide-react"
 import { DriverPicker, DriverSlot } from "@/components/prode/driver-picker"
-import { nextGP, scoring } from "@/lib/f1-data"
+import { scoring } from "@/lib/f1-data"
 import { useNav } from "@/components/prode/nav-context"
 import { cn } from "@/lib/utils"
+import { useNextGP } from "@/hooks/use-next-gp"
 
 type PickerState =
   | { kind: "pole" }
@@ -52,14 +53,21 @@ function SectionCard({
 }
 
 export function Predictions() {
-  const { navigate } = useNav()
-  const [pole, setPole] = useState<string | undefined>()
-  const [top5, setTop5] = useState<(string | undefined)[]>([undefined, undefined, undefined, undefined, undefined])
-  const [safetyCar, setSafetyCar] = useState<boolean | null>(null)
-  const [dnf, setDnf] = useState(2)
-  const [franco, setFranco] = useState<number | null>(null)
-  const [picker, setPicker] = useState<PickerState>(null)
-  const [saved, setSaved] = useState(false)
+  const { navigate } = useNav();
+  const { nextGP } = useNextGP();
+  const [pole, setPole] = useState<string | undefined>();
+  const [top5, setTop5] = useState<(string | undefined)[]>([
+    undefined, undefined, undefined, undefined, undefined,
+  ]);
+  const [safetyCar, setSafetyCar] = useState<boolean | null>(null);
+  const [dnf, setDnf] = useState(2);
+  const [franco, setFranco] = useState<number | null>(null);
+  const [picker, setPicker] = useState<PickerState>(null);
+  const [saved, setSaved] = useState(false);
+
+  if (!nextGP) {
+    return <div className="px-4 py-5 text-muted-foreground">No hay próximo GP</div>
+  }
 
   function handleSelect(id: string) {
     if (!picker) return
