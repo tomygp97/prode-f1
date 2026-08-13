@@ -3,7 +3,7 @@ import { GrandPrix } from "../f1-data"
 const apiurl = process.env.NEXT_PUBLIC_API_URL;
 if (!apiurl) {
     throw new Error("NEXT_PUBLIC_API_URL no está definida")
-    }
+}
 
 export const RaceStatus = {
     SCHEDULED: 'scheduled',
@@ -54,7 +54,6 @@ export function toGrandPrix(race: RaceFromApi): GrandPrix {
         round: race.round,
         name: race.name,
         circuit: race.circuit,
-        city: race.circuit, // hasta que Nest devuelva city
         country: race.country,
         flag: countryFlags[race.country] ?? "🏁",
         date: race.raceStartAt,

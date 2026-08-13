@@ -1,18 +1,21 @@
-import { cn } from "@/lib/utils"
-import { type Driver, driverTeam } from "@/lib/f1-data"
+import { cn, teamColourStyles } from "@/lib/utils"
+import { type Driver } from "@/lib/f1-data"
 
 export function DriverAvatar({
   driver,
+  colour = "#666",
   size = "md",
   className,
 }: {
   driver: Driver
+  colour?: string
   size?: "sm" | "md" | "lg"
   className?: string
 }) {
-  const team = driverTeam(driver.id)
+  const { colour: display, gradientAlpha, outerRing } = teamColourStyles(colour)
   const dim =
     size === "lg" ? "size-14 text-base" : size === "sm" ? "size-9 text-xs" : "size-11 text-sm"
+  const insetShadow = `inset 0 0 0 2px ${display}`
   return (
     <div
       className={cn(
@@ -21,17 +24,17 @@ export function DriverAvatar({
         className,
       )}
       style={{
-        background: `radial-gradient(circle at 30% 25%, ${team.color}40, transparent 70%), oklch(0.27 0.006 285)`,
-        boxShadow: `inset 0 0 0 2px ${team.color}`,
+        background: `radial-gradient(circle at 30% 25%, ${display}${gradientAlpha}, transparent 70%), oklch(0.27 0.006 285)`,
+        boxShadow: outerRing ? `${insetShadow}, ${outerRing}` : insetShadow,
       }}
       aria-hidden="true"
     >
-      {driver.code}
+      {driver.acronym}
       <span
         className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full text-[10px] font-bold leading-none"
-        style={{ backgroundColor: team.color, color: "#0a0a0b" }}
+        style={{ backgroundColor: display, color: "#0a0a0b" }}
       >
-        {driver.number}
+        {driver.driverNumber}
       </span>
     </div>
   )
