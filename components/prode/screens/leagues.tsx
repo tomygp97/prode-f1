@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   ArrowLeft,
   Users,
@@ -12,19 +12,50 @@ import {
   Crown,
 } from "lucide-react"
 import { useNav } from "@/components/prode/nav-context"
-import { league } from "@/lib/f1-data"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/context/auth-context"
+import { getCurrentSeason } from "@/lib/api/seasons"
+import { createLeague } from "@/lib/api/leagues"
 
 export function Leagues() {
   const { navigate } = useNav()
+  const { token } = useAuth()
   const [tab, setTab] = useState<"crear" | "unirse">("crear")
   const [leagueName, setLeagueName] = useState("")
-  const [season, setSeason] = useState("2026")
   const [joinCode, setJoinCode] = useState("")
   const [created, setCreated] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const shareLink = `prodef1.app/j/${league.inviteCode}`
+  const [seasonId, setSeasonId] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [createdLeague, setCreatedLeague] = useState<{ name: string; inviteCode: string } | null>(null)
+
+  useEffect(() => {
+    getCurrentSeason()
+      .then((season) => setSeasonId(season.id))
+      .catch(() => setError("No se pudo cargar la temporada actual"))
+  }, [])
+
+  async function handleCreateLeague() {
+    if (!seasonId || !token) return
+    setIsSubmitting(true)
+    setError(null)
+    try {
+      const league = await createLeague(
+        { name: leagueName, isPublic: false, seasonId },
+        token,
+      )
+      setCreatedLeague({ name: league.name, inviteCode: league.inviteCode })
+      setCreated(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo crear la liga")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const shareLink = createdLeague ? `prodef1.app/j/${createdLeague.inviteCode}` : ""
 
   function copy(text: string) {
     navigator.clipboard?.writeText(text)
@@ -43,26 +74,6 @@ export function Leagues() {
       </button>
 
       <h1 className="font-heading text-2xl font-bold uppercase leading-tight">Ligas Privadas</h1>
-
-      {/* Current league */}
-      <section className="rounded-2xl border border-border bg-card p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              <Crown className="size-5" />
-            </span>
-            <div>
-              <p className="font-heading text-base font-bold">{league.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {league.members.length} jugadores · Temporada {league.season}
-              </p>
-            </div>
-          </div>
-          <span className="rounded-full bg-arg/15 px-2 py-1 text-[10px] font-semibold text-arg">
-            Activa
-          </span>
-        </div>
-      </section>
 
       {/* Tabs */}
       <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-card p-1">
@@ -101,45 +112,28 @@ export function Leagues() {
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary placeholder:text-muted-foreground"
             />
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Temporada</label>
-            <div className="grid grid-cols-2 gap-2">
-              {["2026", "2027"].map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSeason(s)}
-                  className={cn(
-                    "rounded-xl border py-2.5 font-heading font-bold transition-colors",
-                    season === s
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-background text-muted-foreground",
-                  )}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
           <button
             type="button"
-            onClick={() => setCreated(true)}
-            disabled={!leagueName}
+            onClick={handleCreateLeague}
+            disabled={!leagueName || !seasonId || isSubmitting}
             className="w-full rounded-xl bg-primary py-3.5 font-heading text-base font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
           >
-            Crear Liga
+            {isSubmitting ? "Creando..." : "Crear Liga"}
           </button>
         </section>
       )}
 
-      {tab === "crear" && created && (
+      {tab === "crear" && created && createdLeague && (
         <section className="space-y-4 rounded-2xl border border-arg/40 bg-card p-4 animate-in fade-in">
           <div className="flex items-center gap-2 text-arg">
             <Check className="size-5" />
             <p className="font-heading text-lg font-bold uppercase">¡Liga creada!</p>
           </div>
           <p className="text-sm text-muted-foreground">
-            Compartí el código o el link para invitar a tus amigos a <strong className="text-foreground">{leagueName}</strong>.
+            Compartí el código o el link para invitar a tus amigos a <strong className="text-foreground">{createdLeague.name}</strong>.
           </p>
 
           <div>
@@ -148,11 +142,11 @@ export function Leagues() {
             </p>
             <button
               type="button"
-              onClick={() => copy(league.inviteCode)}
+              onClick={() => copy(createdLeague.inviteCode)}
               className="flex w-full items-center justify-between rounded-xl border border-dashed border-border bg-background px-4 py-3"
             >
               <span className="font-mono text-lg font-bold tracking-[0.2em]">
-                {league.inviteCode}
+                {createdLeague.inviteCode}
               </span>
               {copied ? (
                 <Check className="size-4 text-arg" />
