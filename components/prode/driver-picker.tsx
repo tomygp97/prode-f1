@@ -2,18 +2,22 @@
 
 import { useEffect, useState } from "react"
 import { X, Search, Check } from "lucide-react"
-import { drivers, driverTeam, fullName, getDriver } from "@/lib/f1-data"
+import { Driver, findTeam, fullName, Team } from "@/lib/f1-data"
 import { DriverAvatar } from "./driver-avatar"
-import { cn } from "@/lib/utils"
+import { cn, displayColour } from "@/lib/utils"
 
 export function DriverPicker({
+  drivers,
+  teams,
   open,
   title,
   value,
   exclude = [],
-  onClose,
+  onClose ,
   onSelect,
 }: {
+  drivers: Driver[]
+  teams: Team[]
   open: boolean
   title: string
   value?: string
@@ -29,13 +33,14 @@ export function DriverPicker({
 
   if (!open) return null
 
-  const list = drivers.filter((d) => {
+  const list = (drivers ?? []).filter((d) => {
     if (exclude.includes(d.id)) return false
     const q = query.toLowerCase()
+    const team = findTeam(teams, d.teamId)
     return (
       fullName(d).toLowerCase().includes(q) ||
-      d.code.toLowerCase().includes(q) ||
-      driverTeam(d.id).name.toLowerCase().includes(q)
+      d.acronym.toLowerCase().includes(q) ||
+      (team?.name.toLowerCase().includes(q) ?? false)
     )
   })
 
@@ -74,7 +79,9 @@ export function DriverPicker({
 
         <div className="flex-1 overflow-y-auto px-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           {list.map((d) => {
-            const team = driverTeam(d.id)
+            
+            const team = findTeam(teams, d.teamId)
+            const teamColour = team?.colour ?? "#666"
             const selected = value === d.id
             return (
               <button
@@ -89,13 +96,13 @@ export function DriverPicker({
                   selected && "bg-primary/10",
                 )}
               >
-                <DriverAvatar driver={d} />
+                <DriverAvatar driver={d} colour={teamColour} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">
-                    {d.flag} {fullName(d)}
+                    {fullName(d)}
                   </p>
-                  <p className="truncate text-xs" style={{ color: team.color }}>
-                    {team.name}
+                  <p className="truncate text-xs" style={{ color: displayColour(teamColour) }}>
+                    {team?.name}
                   </p>
                 </div>
                 {selected && <Check className="size-5 text-primary" />}
@@ -114,17 +121,23 @@ export function DriverPicker({
 }
 
 export function DriverSlot({
+  drivers,
+  teams,
   position,
   driverId,
   placeholder,
   onClick,
 }: {
+  drivers: Driver[]
+  teams: Team[]
   position?: string
   driverId?: string
   placeholder: string
   onClick: () => void
 }) {
-  const driver = driverId ? getDriver(driverId) : undefined
+  const driver = driverId ? drivers.find((d) => d.id === driverId) : undefined
+  const team = driver ? findTeam(teams, driver.teamId) : undefined
+  const teamColour = team?.colour ?? "#666"
   return (
     <button
       type="button"
@@ -143,16 +156,11 @@ export function DriverSlot({
       )}
       {driver ? (
         <>
-          <DriverAvatar driver={driver} size="sm" />
+          <DriverAvatar driver={driver} size="sm" colour={teamColour} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">
-              {driver.flag} {fullName(driver)}
-            </p>
-            <p
-              className="truncate text-xs"
-              style={{ color: driverTeam(driver.id).color }}
-            >
-              {driverTeam(driver.id).name}
+            <p className="truncate text-sm font-semibold">{fullName(driver)}</p>
+            <p className="truncate text-xs" style={{ color: displayColour(teamColour) }}>
+              {team?.name ?? "—"}
             </p>
           </div>
         </>

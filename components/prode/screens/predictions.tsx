@@ -18,6 +18,8 @@ import { scoring } from "@/lib/f1-data"
 import { useNav } from "@/components/prode/nav-context"
 import { cn } from "@/lib/utils"
 import { useNextGP } from "@/hooks/use-next-gp"
+import { useDrivers } from "@/hooks/use-drivers"
+import { useTeams } from "@/hooks/use-teams"
 
 type PickerState =
   | { kind: "pole" }
@@ -55,6 +57,10 @@ function SectionCard({
 export function Predictions() {
   const { navigate } = useNav();
   const { nextGP } = useNextGP();
+  const { drivers, isLoading: driversLoading, error: driversError } = useDrivers()
+  const { teams, isLoading: teamsLoading, error: teamsError } = useTeams()
+  const isLoading = driversLoading || teamsLoading
+  const fetchError = driversError ?? teamsError
   const [pole, setPole] = useState<string | undefined>();
   const [top5, setTop5] = useState<(string | undefined)[]>([
     undefined, undefined, undefined, undefined, undefined,
@@ -65,6 +71,10 @@ export function Predictions() {
   const [picker, setPicker] = useState<PickerState>(null);
   const [saved, setSaved] = useState(false);
 
+  if (isLoading) {
+    return <div className="px-4 py-5 text-muted-foreground">Cargando...</div>
+  }
+  if (fetchError) return <div>{fetchError}</div>
   if (!nextGP) {
     return <div className="px-4 py-5 text-muted-foreground">No hay próximo GP</div>
   }
@@ -104,6 +114,8 @@ export function Predictions() {
       {/* Pole */}
       <SectionCard icon={Trophy} title="Pole Position" subtitle="¿Quién larga primero el domingo?">
         <DriverSlot
+          drivers={drivers}
+          teams={teams}
           driverId={pole}
           placeholder="Seleccionar piloto"
           onClick={() => setPicker({ kind: "pole" })}
@@ -116,6 +128,8 @@ export function Predictions() {
           {top5.map((id, i) => (
             <DriverSlot
               key={i}
+              drivers={drivers}
+              teams={teams}
               position={`P${i + 1}`}
               driverId={id}
               placeholder={`Seleccionar P${i + 1}`}
@@ -283,6 +297,8 @@ export function Predictions() {
       </button>
 
       <DriverPicker
+        drivers={drivers}
+        teams={teams}
         open={picker !== null}
         title={pp.title}
         value={pp.value}

@@ -120,7 +120,7 @@ export function Dashboard() {
             <div className="grid grid-cols-1 gap-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <MapPin className="size-4 text-primary" />
-                {nextGP.circuit}, {nextGP.city}
+                {nextGP.circuit}
               </div>
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-2">

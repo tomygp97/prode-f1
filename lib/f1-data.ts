@@ -1,54 +1,41 @@
 export type Team = {
     id: string
     name: string
-    color: string
+    colour: string
   }
   
   export type Driver = {
     id: string
-    number: number
-    firstName: string
-    lastName: string
-    code: string
+    driverNumber: number
+    name: string
+    acronym: string
     teamId: string
-    country: string
-    flag: string
   }
   
   export const teams: Team[] = [
-    { id: "rb", name: "Red Bull Racing", color: "#3671C6" },
-    { id: "mclaren", name: "McLaren", color: "#FF8000" },
-    { id: "ferrari", name: "Ferrari", color: "#E8002D" },
-    { id: "mercedes", name: "Mercedes", color: "#27F4D2" },
-    { id: "aston", name: "Aston Martin", color: "#229971" },
-    { id: "alpine", name: "Alpine", color: "#0093CC" },
-    { id: "williams", name: "Williams", color: "#64C4FF" },
-    { id: "rbf1", name: "RB", color: "#6692FF" },
-    { id: "haas", name: "Haas", color: "#B6BABD" },
-    { id: "sauber", name: "Kick Sauber", color: "#52E252" },
+    { id: "rb", name: "Red Bull Racing", colour: "#3671C6" },
+    { id: "mclaren", name: "McLaren", colour: "#FF8000" },
+    { id: "ferrari", name: "Ferrari", colour: "#E8002D" },
+    { id: "mercedes", name: "Mercedes", colour: "#27F4D2" },
+    { id: "aston", name: "Aston Martin", colour: "#229971" },
+    { id: "alpine", name: "Alpine", colour: "#0093CC" },
+    { id: "williams", name: "Williams", colour: "#64C4FF" },
+    { id: "rbf1", name: "RB", colour: "#6692FF" },
+    { id: "haas", name: "Haas", colour: "#B6BABD" },
+    { id: "sauber", name: "Kick Sauber", colour: "#52E252" },
   ]
   
   export const drivers: Driver[] = [
-    { id: "ver", number: 1, firstName: "Max", lastName: "Verstappen", code: "VER", teamId: "rb", country: "Países Bajos", flag: "🇳🇱" },
-    { id: "nor", number: 4, firstName: "Lando", lastName: "Norris", code: "NOR", teamId: "mclaren", country: "Reino Unido", flag: "🇬🇧" },
-    { id: "pia", number: 81, firstName: "Oscar", lastName: "Piastri", code: "PIA", teamId: "mclaren", country: "Australia", flag: "🇦🇺" },
-    { id: "lec", number: 16, firstName: "Charles", lastName: "Leclerc", code: "LEC", teamId: "ferrari", country: "Mónaco", flag: "🇲🇨" },
-    { id: "ham", number: 44, firstName: "Lewis", lastName: "Hamilton", code: "HAM", teamId: "ferrari", country: "Reino Unido", flag: "🇬🇧" },
-    { id: "rus", number: 63, firstName: "George", lastName: "Russell", code: "RUS", teamId: "mercedes", country: "Reino Unido", flag: "🇬🇧" },
-    { id: "ant", number: 12, firstName: "Andrea Kimi", lastName: "Antonelli", code: "ANT", teamId: "mercedes", country: "Italia", flag: "🇮🇹" },
-    { id: "alo", number: 14, firstName: "Fernando", lastName: "Alonso", code: "ALO", teamId: "aston", country: "España", flag: "🇪🇸" },
-    { id: "str", number: 18, firstName: "Lance", lastName: "Stroll", code: "STR", teamId: "aston", country: "Canadá", flag: "🇨🇦" },
-    { id: "col", number: 43, firstName: "Franco", lastName: "Colapinto", code: "COL", teamId: "alpine", country: "Argentina", flag: "🇦🇷" },
-    { id: "gas", number: 10, firstName: "Pierre", lastName: "Gasly", code: "GAS", teamId: "alpine", country: "Francia", flag: "🇫🇷" },
-    { id: "alb", number: 23, firstName: "Alex", lastName: "Albon", code: "ALB", teamId: "williams", country: "Tailandia", flag: "🇹🇭" },
-    { id: "sai", number: 55, firstName: "Carlos", lastName: "Sainz", code: "SAI", teamId: "williams", country: "España", flag: "🇪🇸" },
-    { id: "tsu", number: 22, firstName: "Yuki", lastName: "Tsunoda", code: "TSU", teamId: "rbf1", country: "Japón", flag: "🇯🇵" },
-    { id: "had", number: 6, firstName: "Isack", lastName: "Hadjar", code: "HAD", teamId: "rbf1", country: "Francia", flag: "🇫🇷" },
-    { id: "oco", number: 31, firstName: "Esteban", lastName: "Ocon", code: "OCO", teamId: "haas", country: "Francia", flag: "🇫🇷" },
-    { id: "bea", number: 87, firstName: "Oliver", lastName: "Bearman", code: "BEA", teamId: "haas", country: "Reino Unido", flag: "🇬🇧" },
-    { id: "hul", number: 27, firstName: "Nico", lastName: "Hülkenberg", code: "HUL", teamId: "sauber", country: "Alemania", flag: "🇩🇪" },
-    { id: "bor", number: 5, firstName: "Gabriel", lastName: "Bortoleto", code: "BOR", teamId: "sauber", country: "Brasil", flag: "🇧🇷" },
-    { id: "law", number: 30, firstName: "Liam", lastName: "Lawson", code: "LAW", teamId: "rbf1", country: "Nueva Zelanda", flag: "🇳🇿" },
+    { id: "ver", driverNumber: 1, name: "Max", acronym: "VER", teamId: "rb"},
+    { id: "nor", driverNumber: 4, name: "Lando", acronym: "NOR", teamId: "mclaren"},
+    { id: "pia", driverNumber: 81, name: "Oscar", acronym: "PIA", teamId: "mclaren"},
+    { id: "lec", driverNumber: 16, name: "Charles", acronym: "LEC", teamId: "ferrari"},
+    { id: "ham", driverNumber: 44, name: "Lewis", acronym: "HAM", teamId: "ferrari"},
+    { id: "rus", driverNumber: 63, name: "George", acronym: "RUS", teamId: "mercedes"},
+    { id: "ant", driverNumber: 12, name: "Andrea Kimi", acronym: "ANT", teamId: "mercedes"},
+    { id: "alo", driverNumber: 14, name: "Fernando", acronym: "ALO", teamId: "aston"},
+    { id: "str", driverNumber: 18, name: "Lance", acronym: "STR", teamId: "aston"},
+    { id: "col", driverNumber: 43, name: "Franco", acronym: "COL", teamId: "alpine"},
   ]
   
   export function getDriver(id: string): Driver {
@@ -64,7 +51,11 @@ export type Team = {
   }
   
   export function fullName(d: Driver): string {
-    return `${d.firstName} ${d.lastName}`
+    return `${d.name}`
+  }
+
+  export function findTeam(teams: Team[], teamId: string): Team | undefined {
+    return teams.find((t) => t.id === teamId)
   }
   
   export type GrandPrix = {
@@ -72,7 +63,6 @@ export type Team = {
     round: number
     name: string
     circuit: string
-    city: string
     country: string
     flag: string
     date: string // ISO
