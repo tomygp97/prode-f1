@@ -11,14 +11,14 @@ import {
   Share2,
   Crown,
 } from "lucide-react"
-import { useNav } from "@/components/prode/nav-context"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/auth-context"
 import { getCurrentSeason } from "@/lib/api/seasons"
 import { createLeague } from "@/lib/api/leagues"
 
 export function Leagues() {
-  const { navigate } = useNav()
+  const router = useRouter()
   const { token } = useAuth()
   const [tab, setTab] = useState<"crear" | "unirse">("crear")
   const [leagueName, setLeagueName] = useState("")
@@ -67,7 +67,7 @@ export function Leagues() {
     <div className="space-y-5 px-4 py-5">
       <button
         type="button"
-        onClick={() => navigate("inicio")}
+        onClick={() => router.push("/home")}
         className="flex items-center gap-1 text-sm text-muted-foreground"
       >
         <ArrowLeft className="size-4" /> Volver

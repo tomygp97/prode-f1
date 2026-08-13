@@ -13,7 +13,7 @@ import {
   Trophy,
   Crown,
 } from "lucide-react"
-import { useNav } from "@/components/prode/nav-context"
+import { useRouter } from "next/navigation"
 import {
   league,
   myRank,
@@ -52,7 +52,7 @@ function CountdownBox({ value, label }: { value: number; label: string }) {
 }
 
 export function Dashboard() {
-  const { navigate } = useNav()
+  const router = useRouter()
   const { nextGP, isLoading, error } = useNextGP()
   const c = useCountdown(nextGP?.date ?? "")
   if (isLoading) {
@@ -143,7 +143,7 @@ export function Dashboard() {
 
             <button
               type="button"
-              onClick={() => navigate("predicciones")}
+              onClick={() => router.push("/predictions")}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-heading text-base font-bold uppercase tracking-wide text-primary-foreground transition-transform active:scale-[0.98]"
             >
               <Flag className="size-5" />
@@ -184,7 +184,7 @@ export function Dashboard() {
           </h2>
           <button
             type="button"
-            onClick={() => navigate("ranking")}
+            onClick={() => router.push("/ranking")}
             className="flex items-center text-xs font-medium text-primary"
           >
             Ver ranking <ChevronRight className="size-4" />
@@ -228,7 +228,7 @@ export function Dashboard() {
       <section className="grid grid-cols-2 gap-3">
         <button
           type="button"
-          onClick={() => navigate("temporada")}
+          onClick={() => router.push("/seasons")}
           className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:bg-secondary"
         >
           <span className="flex size-9 items-center justify-center rounded-lg bg-arg/15 text-arg">
@@ -241,7 +241,7 @@ export function Dashboard() {
         </button>
         <button
           type="button"
-          onClick={() => navigate("ligas")}
+          onClick={() => router.push("/leagues")}
           className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:bg-secondary"
         >
           <span className="flex size-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
