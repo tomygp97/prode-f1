@@ -15,7 +15,7 @@ import {
 } from "lucide-react"
 import { DriverPicker, DriverSlot } from "@/components/prode/driver-picker"
 import { scoring } from "@/lib/f1-data"
-import { useNav } from "@/components/prode/nav-context"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useNextGP } from "@/hooks/use-next-gp"
 import { useDrivers } from "@/hooks/use-drivers"
@@ -55,7 +55,7 @@ function SectionCard({
 }
 
 export function Predictions() {
-  const { navigate } = useNav();
+  const router = useRouter()
   const { nextGP } = useNextGP();
   const { drivers, isLoading: driversLoading, error: driversError } = useDrivers()
   const { teams, isLoading: teamsLoading, error: teamsError } = useTeams()
@@ -280,7 +280,7 @@ export function Predictions() {
         type="button"
         onClick={() => {
           setSaved(true)
-          setTimeout(() => navigate("inicio"), 1100)
+          setTimeout(() => router.push("/home"), 1100)
         }}
         className={cn(
           "flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-heading text-base font-bold uppercase tracking-wide transition-all active:scale-[0.98]",
