@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils"
 import { useNextGP } from "@/hooks/use-next-gp"
 import { useDrivers } from "@/hooks/use-drivers"
 import { useTeams } from "@/hooks/use-teams"
+import { useUserLeagues } from "@/hooks/use-user-leagues"
+import { TrackedDriverPrediction } from "@/components/tracked-driver-prediction"
 
 type PickerState =
   | { kind: "pole" }
@@ -57,6 +59,7 @@ function SectionCard({
 export function Predictions() {
   const router = useRouter()
   const { nextGP } = useNextGP();
+  const { leagues } = useUserLeagues();
   const { drivers, isLoading: driversLoading, error: driversError } = useDrivers()
   const { teams, isLoading: teamsLoading, error: teamsError } = useTeams()
   const isLoading = driversLoading || teamsLoading
@@ -70,6 +73,7 @@ export function Predictions() {
   const [franco, setFranco] = useState<number | null>(null);
   const [picker, setPicker] = useState<PickerState>(null);
   const [saved, setSaved] = useState(false);
+  const trackedDriverId = leagues[0]?.league.trackedDriverId
 
   if (isLoading) {
     return <div className="px-4 py-5 text-muted-foreground">Cargando...</div>
@@ -98,6 +102,7 @@ export function Predictions() {
   }
 
   const pp = pickerProps()
+
 
   return (
     <div className="space-y-5 px-4 py-5">
@@ -207,56 +212,10 @@ export function Predictions() {
         </div>
       </SectionCard>
 
-      {/* Franco Colapinto special */}
-      <section className="overflow-hidden rounded-2xl border border-arg/40 bg-card">
-        <div
-          className="h-1.5 w-full"
-          style={{ background: "linear-gradient(90deg, #74ACDF, #fff, #74ACDF)" }}
-        />
-        <div className="flex items-center gap-3 p-4">
-          <div className="relative size-16 shrink-0 overflow-hidden rounded-xl ring-2 ring-arg/50">
-            <Image
-                src="/colapinto.png"
-                alt="Franco Colapinto"
-                fill
-                sizes="64px"
-                className="object-cover"
-            />
-          </div>
-          <div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-arg/15 px-2 py-0.5 text-[10px] font-semibold text-arg">
-              🇦🇷 El Argentino
-            </span>
-            <h2 className="mt-1 font-heading text-xl font-bold uppercase leading-none">
-              Franco Colapinto
-            </h2>
-            <p className="text-xs text-muted-foreground">Alpine · #43 · +10 pts si acertás</p>
-          </div>
-        </div>
-        <div className="px-4 pb-4">
-          <p className="mb-2 text-sm font-medium">¿En qué posición terminará Franco?</p>
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
-            {Array.from({ length: 20 }).map((_, i) => {
-              const pos = i + 1
-              return (
-                <button
-                  key={pos}
-                  type="button"
-                  onClick={() => setFranco(pos)}
-                  className={cn(
-                    "flex size-10 shrink-0 items-center justify-center rounded-lg border font-heading text-sm font-bold transition-colors",
-                    franco === pos
-                      ? "border-arg bg-arg text-arg-foreground"
-                      : "border-border bg-background text-muted-foreground hover:bg-secondary",
-                  )}
-                >
-                  P{pos}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </section>
+      {/* Tracked Driver */}
+      {trackedDriverId && (
+        <TrackedDriverPrediction driverId={trackedDriverId}/>
+      )}
 
       {/* Scoring summary */}
       <section className="rounded-2xl border border-border bg-card p-4">

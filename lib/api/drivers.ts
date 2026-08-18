@@ -33,3 +33,12 @@ export async function fetchDrivers(): Promise<Driver[]> {
     const data: DriverFromApi[] = await res.json();
     return data.map(toDriver)
 }
+
+export async function fetchDriverById(driverId: string): Promise<Driver> {
+    const res = await fetch(`${apiurl}/drivers/${driverId}`)
+    if (!res.ok) {
+        throw new Error(`GET /drivers/${driverId} -> ${res.status}`)
+    }
+    const data: DriverFromApi = await res.json()
+    return toDriver(data)
+}
