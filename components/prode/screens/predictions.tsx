@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import Image from "next/image"
+import { useEffect, useMemo, useState } from "react"
 import {
   Lock,
   Trophy,
@@ -20,13 +19,13 @@ import { cn } from "@/lib/utils"
 import { useNextGP } from "@/hooks/use-next-gp"
 import { useDrivers } from "@/hooks/use-drivers"
 import { useTeams } from "@/hooks/use-teams"
-import { useUserLeagues } from "@/hooks/use-user-leagues"
-import { TrackedDriverPrediction } from "@/components/tracked-driver-prediction"
+import { useLeague } from "@/context/league-context"
+import { TrackedDriverPrediction } from "@/components/prode/screens/tracked-driver-prediction"
+import { buildTrackedDriverItems } from "@/lib/predictions/buildTrackedDriverItems"
 
 type PickerState =
   | { kind: "pole" }
-  | { kind: "top5"; index: number }
-  | { kind: "franco" }
+  | { kind: "predictedOrder"; index: number }
   | null
 
 function SectionCard({
@@ -59,50 +58,131 @@ function SectionCard({
 export function Predictions() {
   const router = useRouter()
   const { nextGP } = useNextGP();
-  const { leagues } = useUserLeagues();
+
+  const { leagues, isLoading: leaguesLoading, error: leaguesError } = useLeague();
   const { drivers, isLoading: driversLoading, error: driversError } = useDrivers()
   const { teams, isLoading: teamsLoading, error: teamsError } = useTeams()
-  const isLoading = driversLoading || teamsLoading
-  const fetchError = driversError ?? teamsError
+
+  const isLoading = driversLoading || teamsLoading || leaguesLoading
+  const fetchError = driversError ?? teamsError ?? leaguesError
+
   const [pole, setPole] = useState<string | undefined>();
-  const [top5, setTop5] = useState<(string | undefined)[]>([
-    undefined, undefined, undefined, undefined, undefined,
-  ]);
-  const [safetyCar, setSafetyCar] = useState<boolean | null>(null);
-  const [dnf, setDnf] = useState(2);
-  const [franco, setFranco] = useState<number | null>(null);
-  const [picker, setPicker] = useState<PickerState>(null);
-  const [saved, setSaved] = useState(false);
-  const trackedDriverId = leagues[0]?.league.trackedDriverId
+  const [predictedOrder, setPredictedOrder] = useState<(string | undefined)[]>([])
+  const [safetyCar, setSafetyCar] = useState<boolean | null>(null)
+  const [dnf, setDnf] = useState(2)
+  const [picker, setPicker] = useState<PickerState>(null)
+  const [saved, setSaved] = useState(false)
+
+  const [manualTrackedDriverPositions, setManualTrackedDriverPositions] = useState<Record<string, number>>({})
+
+  const maxPredictionSlots = leagues.length
+    ? Math.max(...leagues.map((userLeague) => userLeague.league.predictionSlots))
+    : 0
+
+    useEffect(() => {
+      if (maxPredictionSlots === 0) return
+    
+      setPredictedOrder((prev) => {
+        if (prev.length === maxPredictionSlots) return prev
+    
+        return Array.from(
+          { length: maxPredictionSlots },
+          (_, index) => prev[index],
+        )
+      })
+    }, [maxPredictionSlots])
+  
+  const trackedDriverItems = useMemo(() =>
+    buildTrackedDriverItems({
+      leagues,
+      drivers,
+      teams,
+      predictedOrder,
+      manualPositions: manualTrackedDriverPositions,
+    }),
+    [
+      leagues,
+      drivers,
+      teams,
+      predictedOrder,
+      manualTrackedDriverPositions,
+    ],
+  )
 
   if (isLoading) {
     return <div className="px-4 py-5 text-muted-foreground">Cargando...</div>
   }
   if (fetchError) return <div>{fetchError}</div>
+  
   if (!nextGP) {
     return <div className="px-4 py-5 text-muted-foreground">No hay próximo GP</div>
   }
 
   function handleSelect(id: string) {
     if (!picker) return
-    if (picker.kind === "pole") setPole(id)
-    if (picker.kind === "top5") {
-      setTop5((prev) => prev.map((v, i) => (i === picker.index ? id : v)))
+  
+    if (picker.kind === "pole") {
+      setPole(id)
+      return
     }
+  
+    if (picker.kind === "predictedOrder") {
+      setPredictedOrder((prev) =>
+        prev.map((value, index) =>
+          index === picker.index ? id : value,
+        ),
+      )
+    }
+  }
+
+  const handleTrackedDriverPositionChange = (
+    driverId: string,
+    position: number,
+  ) => {
+    setManualTrackedDriverPositions((prev) => ({
+      ...prev,
+      [driverId]: position,
+    }))
   }
 
   function pickerProps() {
-    if (!picker) return { title: "", value: undefined, exclude: [] as string[] }
-    if (picker.kind === "pole") return { title: "Elegí la Pole", value: pole, exclude: [] as string[] }
-    if (picker.kind === "top5") {
-      const ex = top5.filter((v, i) => v && i !== picker.index) as string[]
-      return { title: `Elegí P${picker.index + 1}`, value: top5[picker.index], exclude: ex }
+    if (!picker) {
+      return {
+        title: "",
+        value: undefined,
+        exclude: [] as string[],
+      }
     }
-    return { title: "", value: undefined, exclude: [] as string[] }
+  
+    if (picker.kind === "pole") {
+      return {
+        title: "Elegí la Pole",
+        value: pole,
+        exclude: [],
+      }
+    }
+  
+    if (picker.kind === "predictedOrder") {
+      const exclude = predictedOrder.filter(
+        (driverId, index) =>
+          driverId && index !== picker.index,
+      ) as string[]
+  
+      return {
+        title: `Elegí P${picker.index + 1}`,
+        value: predictedOrder[picker.index],
+        exclude,
+      }
+    }
+  
+    return {
+      title: "",
+      value: undefined,
+      exclude: [],
+    }
   }
 
   const pp = pickerProps()
-
 
   return (
     <div className="space-y-5 px-4 py-5">
@@ -127,18 +207,21 @@ export function Predictions() {
         />
       </SectionCard>
 
-      {/* Top 5 */}
-      <SectionCard icon={ListOrdered} title="Top 5 Carrera" subtitle="No se pueden repetir pilotos.">
+      {/* Orden de Carrera */}
+      <SectionCard icon={ListOrdered} title="Orden de Carrera" subtitle="No se pueden repetir pilotos.">
         <div className="space-y-2">
-          {top5.map((id, i) => (
-            <DriverSlot
+          {Array.from({ length: maxPredictionSlots }).map((_, i) => (
+            <DriverSlot 
               key={i}
               drivers={drivers}
               teams={teams}
-              position={`P${i + 1}`}
-              driverId={id}
-              placeholder={`Seleccionar P${i + 1}`}
-              onClick={() => setPicker({ kind: "top5", index: i })}
+              position={`P${i+1}`}
+              driverId={predictedOrder[i]}
+              placeholder={`Seleccionar P${i+1}`}
+              onClick={() => setPicker({
+                kind: "predictedOrder",
+                index: i,
+              })}
             />
           ))}
         </div>
@@ -213,8 +296,11 @@ export function Predictions() {
       </SectionCard>
 
       {/* Tracked Driver */}
-      {trackedDriverId && (
-        <TrackedDriverPrediction driverId={trackedDriverId}/>
+      {trackedDriverItems.length > 0 && (
+        <TrackedDriverPrediction
+          items={trackedDriverItems}
+          onPositionChange={handleTrackedDriverPositionChange}
+        />
       )}
 
       {/* Scoring summary */}

@@ -185,7 +185,7 @@ export function Dashboard() {
           <button
             type="button"
             onClick={() => router.push("/ranking")}
-            className="flex items-center text-xs font-medium text-primary"
+            className="flex items-center text-xs font-medium text-primary cursor-pointer"
           >
             Ver ranking <ChevronRight className="size-4" />
           </button>
