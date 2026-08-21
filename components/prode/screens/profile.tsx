@@ -1,7 +1,11 @@
 "use client"
 
-import { Trophy, Medal, TrendingUp, Star, Flag, Crown } from "lucide-react"
-import { profile } from "@/lib/f1-data"
+import { useEffect, useState } from "react"
+import { Trophy, Medal, TrendingUp, Star, Flag, Crown, LogOut } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/context/auth-context"
+import { useLeague } from "@/context/league-context"
+import { getLeagueStandings, LeagueRankingEntry } from "@/lib/api/ranking"
 import { cn } from "@/lib/utils"
 
 function Stat({
@@ -32,6 +36,40 @@ function Stat({
 }
 
 export function Profile() {
+  const { user, token, logout } = useAuth()
+  const { activeLeague } = useLeague()
+  const router = useRouter()
+
+  const [standings, setStandings] = useState<LeagueRankingEntry[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!activeLeague || !token) {
+      setIsLoading(false)
+      return
+    }
+    getLeagueStandings(activeLeague.league.id, token)
+      .then(setStandings)
+      .catch(() => setStandings([]))
+      .finally(() => setIsLoading(false))
+  }, [activeLeague, token])
+
+  const myStanding = standings.find((s) => s.ranking.userId === user?.id)
+
+  function handleLogout() {
+    logout()
+    router.push("/login")
+  }
+
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "?"
+
   return (
     <div className="space-y-5 px-4 py-5">
       {/* Header card */}
@@ -40,79 +78,52 @@ export function Profile() {
         <div className="px-4 pb-4">
           <div className="-mt-8 flex items-end gap-3">
             <div className="flex size-20 items-center justify-center rounded-2xl border-4 border-card bg-secondary font-heading text-2xl font-bold">
-              VO
+              {initials}
             </div>
             <div className="pb-1">
               <h1 className="font-heading text-xl font-bold uppercase leading-none">
-                {profile.name}
+                {user?.name ?? "—"}
               </h1>
-              <p className="text-sm text-muted-foreground">{profile.username}</p>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
           </div>
           <div className="mt-3 flex gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-arg/15 px-2.5 py-1 text-xs font-semibold text-arg">
-              <Trophy className="size-3" /> {profile.rank}º en la liga
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">
-              {profile.racesPlayed} fechas jugadas
-            </span>
+            {myStanding && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-arg/15 px-2.5 py-1 text-xs font-semibold text-arg">
+                <Trophy className="size-3" /> {myStanding.rank}º en {activeLeague?.league.name}
+              </span>
+            )}
           </div>
         </div>
       </section>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3">
-        <Stat icon={Crown} label="Puntos totales" value={String(profile.totalPoints)} accent="primary" />
-        <Stat icon={TrendingUp} label="Posición actual" value={`${profile.rank}º`} accent="arg" />
-        <Stat icon={Medal} label="Victorias de fecha" value={String(profile.raceWins)} accent="primary" />
-        <Stat icon={Star} label="Promedio x carrera" value={String(profile.avgPerRace)} accent="arg" />
-      </div>
-
-      {/* Best race */}
-      <section className="flex items-center justify-between rounded-2xl border border-arg/40 bg-gradient-to-r from-arg/15 to-transparent p-4">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-arg/20 text-arg">
-            <Star className="size-5" />
-          </span>
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Mejor fecha</p>
-            <p className="font-heading text-base font-bold">{profile.bestRace.gp}</p>
-          </div>
+      {isLoading ? (
+        <p className="text-center text-sm text-muted-foreground">Cargando estadísticas...</p>
+      ) : !activeLeague ? (
+        <p className="text-center text-sm text-muted-foreground">
+          Todavía no estás en ninguna liga. Creá o unite a una desde &quot;Mis Ligas&quot;.
+        </p>
+      ) : myStanding ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Stat icon={Crown} label="Puntos totales" value={String(myStanding.ranking.totalPoints)} accent="primary" />
+          <Stat icon={TrendingUp} label="Posición actual" value={`${myStanding.rank}º`} accent="arg" />
+          <Stat icon={Medal} label="Carreras puntuadas" value={String(myStanding.ranking.racesCounted)} accent="primary" />
         </div>
-        <span className="font-heading text-3xl font-bold text-arg">+{profile.bestRace.points}</span>
-      </section>
+      ) : (
+        <p className="text-center text-sm text-muted-foreground">
+          Todavía no tenés puntaje en {activeLeague.league.name} — cargá tu primer pronóstico.
+        </p>
+      )}
 
-      {/* History */}
-      <section>
-        <h2 className="mb-3 font-heading text-lg font-bold uppercase">Historial</h2>
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          {profile.history.map((h, i) => (
-            <div
-              key={h.round}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3",
-                i !== profile.history.length - 1 && "border-b border-border",
-              )}
-            >
-              <span className="font-mono text-xs text-muted-foreground">R{h.round}</span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{h.gp}</p>
-                <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Flag className="size-3" /> {h.position}º en la fecha
-                </p>
-              </div>
-              <span
-                className={cn(
-                  "font-heading text-base font-bold tabular-nums",
-                  h.position === 1 ? "text-arg" : "text-foreground",
-                )}
-              >
-                +{h.points}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Logout */}
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      >
+        <LogOut className="size-4" /> Cerrar sesión
+      </button>
     </div>
   )
 }
