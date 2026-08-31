@@ -51,8 +51,11 @@ type LeagueContextValue = {
   
           setLeagues(data)
   
-          if (data.length === 1) {
-            setActiveLeagueId(data[0].league.id)
+          if (data.length > 0) {
+            const mostRecent = [...data].sort(
+              (a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime(),
+            )[0]
+            setActiveLeagueId(mostRecent.league.id)
           } else {
             setActiveLeagueId(undefined)
           }

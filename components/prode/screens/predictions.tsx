@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useAuth } from "@/context/auth-context"
 import {
   Lock,
   Trophy,
@@ -22,6 +23,8 @@ import { useTeams } from "@/hooks/use-teams"
 import { useLeague } from "@/context/league-context"
 import { TrackedDriverPrediction } from "@/components/prode/screens/tracked-driver-prediction"
 import { buildTrackedDriverItems } from "@/lib/predictions/buildTrackedDriverItems"
+import { submitPrediction } from "@/lib/api/predictions"
+import { buildPredictionRequest } from "@/lib/predictions/buildPredictionRequest"
 
 type PickerState =
   | { kind: "pole" }
@@ -57,9 +60,10 @@ function SectionCard({
 
 export function Predictions() {
   const router = useRouter()
-  const { nextGP } = useNextGP();
+  const { nextGP } = useNextGP()
+  const { token } = useAuth()
 
-  const { leagues, isLoading: leaguesLoading, error: leaguesError } = useLeague();
+  const { leagues, isLoading: leaguesLoading, error: leaguesError } = useLeague()
   const { drivers, isLoading: driversLoading, error: driversError } = useDrivers()
   const { teams, isLoading: teamsLoading, error: teamsError } = useTeams()
 
@@ -71,7 +75,9 @@ export function Predictions() {
   const [safetyCar, setSafetyCar] = useState<boolean | null>(null)
   const [dnf, setDnf] = useState(2)
   const [picker, setPicker] = useState<PickerState>(null)
-  const [saved, setSaved] = useState(false)
+  const [saved, setSaved] = useState(false) //! Verificar
+  const [isSaving, setIsSaving] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const [manualTrackedDriverPositions, setManualTrackedDriverPositions] = useState<Record<string, number>>({})
 
@@ -143,6 +149,42 @@ export function Predictions() {
       ...prev,
       [driverId]: position,
     }))
+  }
+
+  async function handleSubmit() {
+    if (!token || !nextGP) {
+      return
+    }
+
+    try {
+      setIsSaving(true)
+      setSubmitError(null)
+      setSaved(false)
+      const requests = leagues.map((userLeague) => {
+        const league = userLeague.league
+
+        const body = buildPredictionRequest({
+          league, predictedOrder, pole, safetyCar, dnf, trackedDriverItems
+        })
+
+        if (!body) {
+          throw new Error(`La predicción para la liga "${league.name}" esta incompleta`)
+        }
+
+        return submitPrediction(token, league.id, nextGP.id, body)
+      })
+
+      await Promise.all(requests)
+      setSaved(true)
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : "No se pudieron guardar las predicciones",
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   function pickerProps() {
@@ -323,10 +365,8 @@ export function Predictions() {
 
       <button
         type="button"
-        onClick={() => {
-          setSaved(true)
-          setTimeout(() => router.push("/home"), 1100)
-        }}
+        onClick={handleSubmit}
+        disabled={isSaving}
         className={cn(
           "flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-heading text-base font-bold uppercase tracking-wide transition-all active:scale-[0.98]",
           saved ? "bg-arg text-arg-foreground" : "bg-primary text-primary-foreground",
