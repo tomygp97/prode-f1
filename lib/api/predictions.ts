@@ -20,7 +20,7 @@ export interface SubmitPredictionRequest {
     dnfCount: number
 }
 
-export async function submitPrediction(
+export function submitPrediction(
     token: string,
     leagueId: string,
     raceId: string,
@@ -29,6 +29,17 @@ export async function submitPrediction(
     return api.post<Prediction>(
         `/leagues/${leagueId}/races/${raceId}/predictions`,
         body,
+        token
+    )
+}
+
+export function fetchMyPrediction(
+    token: string,
+    leagueId: string,
+    raceId: string,
+): Promise<Prediction | null> {
+    return api.get<Prediction | null>(
+        `/leagues/${leagueId}/races/${raceId}/predictions/me`,
         token
     )
 }

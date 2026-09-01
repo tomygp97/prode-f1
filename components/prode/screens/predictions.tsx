@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
 import { useAuth } from "@/context/auth-context"
 import {
   Lock,
@@ -8,14 +8,11 @@ import {
   ListOrdered,
   ShieldAlert,
   CarFront,
-  Info,
   Check,
   Minus,
   Plus,
 } from "lucide-react"
 import { DriverPicker, DriverSlot } from "@/components/prode/driver-picker"
-import { scoring } from "@/lib/f1-data"
-import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useNextGP } from "@/hooks/use-next-gp"
 import { useDrivers } from "@/hooks/use-drivers"
@@ -23,80 +20,38 @@ import { useTeams } from "@/hooks/use-teams"
 import { useLeague } from "@/context/league-context"
 import { TrackedDriverPrediction } from "@/components/prode/screens/tracked-driver-prediction"
 import { buildTrackedDriverItems } from "@/lib/predictions/buildTrackedDriverItems"
-import { submitPrediction } from "@/lib/api/predictions"
-import { buildPredictionRequest } from "@/lib/predictions/buildPredictionRequest"
-
-type PickerState =
-  | { kind: "pole" }
-  | { kind: "predictedOrder"; index: number }
-  | null
-
-function SectionCard({
-  icon: Icon,
-  title,
-  subtitle,
-  children,
-}: {
-  icon: typeof Trophy
-  title: string
-  subtitle?: string
-  children: React.ReactNode
-}) {
-  return (
-    <section className="rounded-2xl border border-border bg-card p-4">
-      <div className="mb-3 flex items-center gap-2.5">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <Icon className="size-4" />
-        </span>
-        <div>
-          <h2 className="font-heading text-base font-bold uppercase leading-none">{title}</h2>
-          {subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}
-        </div>
-      </div>
-      {children}
-    </section>
-  )
-}
+import { useMyPredictions } from "@/hooks/use-my-predictions"
+import { SectionCard } from "../section-card"
+import { usePredictionForm } from "@/hooks/use-prediction-form"
+import { ScoringSummary } from "@/components/prediction/scoring-summary"
+import { useSavePrediction } from "@/hooks/use-save-prediction"
 
 export function Predictions() {
-  const router = useRouter()
   const { nextGP } = useNextGP()
   const { token } = useAuth()
 
   const { leagues, isLoading: leaguesLoading, error: leaguesError } = useLeague()
   const { drivers, isLoading: driversLoading, error: driversError } = useDrivers()
   const { teams, isLoading: teamsLoading, error: teamsError } = useTeams()
+  const { predictions, isLoading: predictionsLoading, error: predictionsError } = useMyPredictions(leagues, nextGP?.id, token)
 
-  const isLoading = driversLoading || teamsLoading || leaguesLoading
-  const fetchError = driversError ?? teamsError ?? leaguesError
+  const isLoading = driversLoading || teamsLoading || leaguesLoading || predictionsLoading
+  const fetchError = driversError ?? teamsError ?? leaguesError ?? predictionsError
 
-  const [pole, setPole] = useState<string | undefined>();
-  const [predictedOrder, setPredictedOrder] = useState<(string | undefined)[]>([])
-  const [safetyCar, setSafetyCar] = useState<boolean | null>(null)
-  const [dnf, setDnf] = useState(2)
-  const [picker, setPicker] = useState<PickerState>(null)
-  const [saved, setSaved] = useState(false) //! Verificar
-  const [isSaving, setIsSaving] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-
-  const [manualTrackedDriverPositions, setManualTrackedDriverPositions] = useState<Record<string, number>>({})
-
-  const maxPredictionSlots = leagues.length
-    ? Math.max(...leagues.map((userLeague) => userLeague.league.predictionSlots))
-    : 0
-
-    useEffect(() => {
-      if (maxPredictionSlots === 0) return
-    
-      setPredictedOrder((prev) => {
-        if (prev.length === maxPredictionSlots) return prev
-    
-        return Array.from(
-          { length: maxPredictionSlots },
-          (_, index) => prev[index],
-        )
-      })
-    }, [maxPredictionSlots])
+  const {
+    pole,
+    predictedOrder,
+    safetyCar,
+    dnf,
+    picker,
+    setPicker,
+    manualTrackedDriverPositions,
+    maxPredictionSlots,
+    setSafetyCar,
+    setDnf,
+    handleSelect,
+    handleTrackedDriverPositionChange,
+  } = usePredictionForm({leagues, predictions})
   
   const trackedDriverItems = useMemo(() =>
     buildTrackedDriverItems({
@@ -115,6 +70,17 @@ export function Predictions() {
     ],
   )
 
+  const { savePrediction, isSaving, saved } = useSavePrediction({
+  token,
+  raceId: nextGP?.id,
+    leagues,
+    predictedOrder,
+    pole,
+    safetyCar,
+    dnf,
+    trackedDriverItems
+  })
+
   if (isLoading) {
     return <div className="px-4 py-5 text-muted-foreground">Cargando...</div>
   }
@@ -122,69 +88,6 @@ export function Predictions() {
   
   if (!nextGP) {
     return <div className="px-4 py-5 text-muted-foreground">No hay próximo GP</div>
-  }
-
-  function handleSelect(id: string) {
-    if (!picker) return
-  
-    if (picker.kind === "pole") {
-      setPole(id)
-      return
-    }
-  
-    if (picker.kind === "predictedOrder") {
-      setPredictedOrder((prev) =>
-        prev.map((value, index) =>
-          index === picker.index ? id : value,
-        ),
-      )
-    }
-  }
-
-  const handleTrackedDriverPositionChange = (
-    driverId: string,
-    position: number,
-  ) => {
-    setManualTrackedDriverPositions((prev) => ({
-      ...prev,
-      [driverId]: position,
-    }))
-  }
-
-  async function handleSubmit() {
-    if (!token || !nextGP) {
-      return
-    }
-
-    try {
-      setIsSaving(true)
-      setSubmitError(null)
-      setSaved(false)
-      const requests = leagues.map((userLeague) => {
-        const league = userLeague.league
-
-        const body = buildPredictionRequest({
-          league, predictedOrder, pole, safetyCar, dnf, trackedDriverItems
-        })
-
-        if (!body) {
-          throw new Error(`La predicción para la liga "${league.name}" esta incompleta`)
-        }
-
-        return submitPrediction(token, league.id, nextGP.id, body)
-      })
-
-      await Promise.all(requests)
-      setSaved(true)
-    } catch (err) {
-      setSubmitError(
-        err instanceof Error
-          ? err.message
-          : "No se pudieron guardar las predicciones",
-      )
-    } finally {
-      setIsSaving(false)
-    }
   }
 
   function pickerProps() {
@@ -346,26 +249,11 @@ export function Predictions() {
       )}
 
       {/* Scoring summary */}
-      <section className="rounded-2xl border border-border bg-card p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Info className="size-4 text-muted-foreground" />
-          <h2 className="font-heading text-base font-bold uppercase">Resumen de Puntajes</h2>
-        </div>
-        <ul className="divide-y divide-border">
-          {scoring.map((s) => (
-            <li key={s.label} className="flex items-center justify-between gap-3 py-2 text-sm">
-              <span className="text-muted-foreground">{s.label}</span>
-              <span className="shrink-0 rounded-md bg-primary/15 px-2 py-0.5 font-heading text-sm font-bold text-primary">
-                +{s.points}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <ScoringSummary />
 
       <button
         type="button"
-        onClick={handleSubmit}
+        onClick={savePrediction}
         disabled={isSaving}
         className={cn(
           "flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-heading text-base font-bold uppercase tracking-wide transition-all active:scale-[0.98]",
