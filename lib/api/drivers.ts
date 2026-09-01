@@ -1,4 +1,5 @@
 import { Driver } from "../f1-data";
+import { api } from "./client";
 
 
 const apiurl = process.env.NEXT_PUBLIC_API_URL;
@@ -25,20 +26,23 @@ export function toDriver(data: DriverFromApi): Driver {
     }
 }
 
+
 export async function fetchDrivers(): Promise<Driver[]> {
-    const res = await fetch(`${apiurl}/drivers`);
-    if (!res.ok) {
-        throw new Error(`GET /drivers -> ${res.status}`)
-    }
-    const data: DriverFromApi[] = await res.json();
+    const data = await api.get<DriverFromApi[]>("/drivers")
     return data.map(toDriver)
 }
 
+//! Verificar
+// export async function fetchDriverById2(driverId: string): Promise<Driver> {
+//     const res = await fetch(`${apiurl}/drivers/${driverId}`)
+//     if (!res.ok) {
+//         throw new Error(`GET /drivers/${driverId} -> ${res.status}`)
+//     }
+//     const data: DriverFromApi = await res.json()
+//     return toDriver(data)
+// }
+
 export async function fetchDriverById(driverId: string): Promise<Driver> {
-    const res = await fetch(`${apiurl}/drivers/${driverId}`)
-    if (!res.ok) {
-        throw new Error(`GET /drivers/${driverId} -> ${res.status}`)
-    }
-    const data: DriverFromApi = await res.json()
+    const data = await api.get<DriverFromApi>(`/drivers/${driverId}`)
     return toDriver(data)
 }

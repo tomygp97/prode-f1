@@ -1,108 +1,133 @@
 "use client"
 
-import { useState } from "react"
-import Image from "next/image"
+import { useMemo } from "react"
+import { useAuth } from "@/context/auth-context"
 import {
   Lock,
   Trophy,
   ListOrdered,
   ShieldAlert,
   CarFront,
-  Info,
   Check,
   Minus,
   Plus,
 } from "lucide-react"
 import { DriverPicker, DriverSlot } from "@/components/prode/driver-picker"
-import { scoring } from "@/lib/f1-data"
-import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useNextGP } from "@/hooks/use-next-gp"
 import { useDrivers } from "@/hooks/use-drivers"
 import { useTeams } from "@/hooks/use-teams"
-import { useUserLeagues } from "@/hooks/use-user-leagues"
-import { TrackedDriverPrediction } from "@/components/tracked-driver-prediction"
-
-type PickerState =
-  | { kind: "pole" }
-  | { kind: "top5"; index: number }
-  | { kind: "franco" }
-  | null
-
-function SectionCard({
-  icon: Icon,
-  title,
-  subtitle,
-  children,
-}: {
-  icon: typeof Trophy
-  title: string
-  subtitle?: string
-  children: React.ReactNode
-}) {
-  return (
-    <section className="rounded-2xl border border-border bg-card p-4">
-      <div className="mb-3 flex items-center gap-2.5">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <Icon className="size-4" />
-        </span>
-        <div>
-          <h2 className="font-heading text-base font-bold uppercase leading-none">{title}</h2>
-          {subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}
-        </div>
-      </div>
-      {children}
-    </section>
-  )
-}
+import { useLeague } from "@/context/league-context"
+import { TrackedDriverPrediction } from "@/components/prode/screens/tracked-driver-prediction"
+import { buildTrackedDriverItems } from "@/lib/predictions/buildTrackedDriverItems"
+import { useMyPredictions } from "@/hooks/use-my-predictions"
+import { SectionCard } from "../section-card"
+import { usePredictionForm } from "@/hooks/use-prediction-form"
+import { ScoringSummary } from "@/components/prediction/scoring-summary"
+import { useSavePrediction } from "@/hooks/use-save-prediction"
 
 export function Predictions() {
-  const router = useRouter()
-  const { nextGP } = useNextGP();
-  const { leagues } = useUserLeagues();
+  const { nextGP } = useNextGP()
+  const { token } = useAuth()
+
+  const { leagues, isLoading: leaguesLoading, error: leaguesError } = useLeague()
   const { drivers, isLoading: driversLoading, error: driversError } = useDrivers()
   const { teams, isLoading: teamsLoading, error: teamsError } = useTeams()
-  const isLoading = driversLoading || teamsLoading
-  const fetchError = driversError ?? teamsError
-  const [pole, setPole] = useState<string | undefined>();
-  const [top5, setTop5] = useState<(string | undefined)[]>([
-    undefined, undefined, undefined, undefined, undefined,
-  ]);
-  const [safetyCar, setSafetyCar] = useState<boolean | null>(null);
-  const [dnf, setDnf] = useState(2);
-  const [franco, setFranco] = useState<number | null>(null);
-  const [picker, setPicker] = useState<PickerState>(null);
-  const [saved, setSaved] = useState(false);
-  const trackedDriverId = leagues[0]?.league.trackedDriverId
+  const { predictions, isLoading: predictionsLoading, error: predictionsError } = useMyPredictions(leagues, nextGP?.id, token)
+
+  const isLoading = driversLoading || teamsLoading || leaguesLoading || predictionsLoading
+  const fetchError = driversError ?? teamsError ?? leaguesError ?? predictionsError
+
+  const {
+    pole,
+    predictedOrder,
+    safetyCar,
+    dnf,
+    picker,
+    setPicker,
+    manualTrackedDriverPositions,
+    maxPredictionSlots,
+    setSafetyCar,
+    setDnf,
+    handleSelect,
+    handleTrackedDriverPositionChange,
+  } = usePredictionForm({leagues, predictions})
+  
+  const trackedDriverItems = useMemo(() =>
+    buildTrackedDriverItems({
+      leagues,
+      drivers,
+      teams,
+      predictedOrder,
+      manualPositions: manualTrackedDriverPositions,
+    }),
+    [
+      leagues,
+      drivers,
+      teams,
+      predictedOrder,
+      manualTrackedDriverPositions,
+    ],
+  )
+
+  const { savePrediction, isSaving, saved } = useSavePrediction({
+  token,
+  raceId: nextGP?.id,
+    leagues,
+    predictedOrder,
+    pole,
+    safetyCar,
+    dnf,
+    trackedDriverItems
+  })
 
   if (isLoading) {
     return <div className="px-4 py-5 text-muted-foreground">Cargando...</div>
   }
   if (fetchError) return <div>{fetchError}</div>
+  
   if (!nextGP) {
     return <div className="px-4 py-5 text-muted-foreground">No hay próximo GP</div>
   }
 
-  function handleSelect(id: string) {
-    if (!picker) return
-    if (picker.kind === "pole") setPole(id)
-    if (picker.kind === "top5") {
-      setTop5((prev) => prev.map((v, i) => (i === picker.index ? id : v)))
-    }
-  }
-
   function pickerProps() {
-    if (!picker) return { title: "", value: undefined, exclude: [] as string[] }
-    if (picker.kind === "pole") return { title: "Elegí la Pole", value: pole, exclude: [] as string[] }
-    if (picker.kind === "top5") {
-      const ex = top5.filter((v, i) => v && i !== picker.index) as string[]
-      return { title: `Elegí P${picker.index + 1}`, value: top5[picker.index], exclude: ex }
+    if (!picker) {
+      return {
+        title: "",
+        value: undefined,
+        exclude: [] as string[],
+      }
     }
-    return { title: "", value: undefined, exclude: [] as string[] }
+  
+    if (picker.kind === "pole") {
+      return {
+        title: "Elegí la Pole",
+        value: pole,
+        exclude: [],
+      }
+    }
+  
+    if (picker.kind === "predictedOrder") {
+      const exclude = predictedOrder.filter(
+        (driverId, index) =>
+          driverId && index !== picker.index,
+      ) as string[]
+  
+      return {
+        title: `Elegí P${picker.index + 1}`,
+        value: predictedOrder[picker.index],
+        exclude,
+      }
+    }
+  
+    return {
+      title: "",
+      value: undefined,
+      exclude: [],
+    }
   }
 
   const pp = pickerProps()
-
 
   return (
     <div className="space-y-5 px-4 py-5">
@@ -127,18 +152,21 @@ export function Predictions() {
         />
       </SectionCard>
 
-      {/* Top 5 */}
-      <SectionCard icon={ListOrdered} title="Top 5 Carrera" subtitle="No se pueden repetir pilotos.">
+      {/* Orden de Carrera */}
+      <SectionCard icon={ListOrdered} title="Orden de Carrera" subtitle="No se pueden repetir pilotos.">
         <div className="space-y-2">
-          {top5.map((id, i) => (
-            <DriverSlot
+          {Array.from({ length: maxPredictionSlots }).map((_, i) => (
+            <DriverSlot 
               key={i}
               drivers={drivers}
               teams={teams}
-              position={`P${i + 1}`}
-              driverId={id}
-              placeholder={`Seleccionar P${i + 1}`}
-              onClick={() => setPicker({ kind: "top5", index: i })}
+              position={`P${i+1}`}
+              driverId={predictedOrder[i]}
+              placeholder={`Seleccionar P${i+1}`}
+              onClick={() => setPicker({
+                kind: "predictedOrder",
+                index: i,
+              })}
             />
           ))}
         </div>
@@ -213,34 +241,20 @@ export function Predictions() {
       </SectionCard>
 
       {/* Tracked Driver */}
-      {trackedDriverId && (
-        <TrackedDriverPrediction driverId={trackedDriverId}/>
+      {trackedDriverItems.length > 0 && (
+        <TrackedDriverPrediction
+          items={trackedDriverItems}
+          onPositionChange={handleTrackedDriverPositionChange}
+        />
       )}
 
       {/* Scoring summary */}
-      <section className="rounded-2xl border border-border bg-card p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Info className="size-4 text-muted-foreground" />
-          <h2 className="font-heading text-base font-bold uppercase">Resumen de Puntajes</h2>
-        </div>
-        <ul className="divide-y divide-border">
-          {scoring.map((s) => (
-            <li key={s.label} className="flex items-center justify-between gap-3 py-2 text-sm">
-              <span className="text-muted-foreground">{s.label}</span>
-              <span className="shrink-0 rounded-md bg-primary/15 px-2 py-0.5 font-heading text-sm font-bold text-primary">
-                +{s.points}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <ScoringSummary />
 
       <button
         type="button"
-        onClick={() => {
-          setSaved(true)
-          setTimeout(() => router.push("/home"), 1100)
-        }}
+        onClick={savePrediction}
+        disabled={isSaving}
         className={cn(
           "flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-heading text-base font-bold uppercase tracking-wide transition-all active:scale-[0.98]",
           saved ? "bg-arg text-arg-foreground" : "bg-primary text-primary-foreground",
