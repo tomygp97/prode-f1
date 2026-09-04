@@ -51,7 +51,12 @@ type LeagueContextValue = {
   
           setLeagues(data)
   
-          if (data.length > 0) {
+          const storedLeagueId = localStorage.getItem('activeLeagueId')
+          const storedLeagueIsValid = storedLeagueId && data.some((ul) => ul.league.id === storedLeagueId)
+
+          if (storedLeagueIsValid) {
+            setActiveLeagueId(storedLeagueId)
+          } else if (data.length > 0) {
             const mostRecent = [...data].sort(
               (a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime(),
             )[0]
@@ -81,7 +86,7 @@ type LeagueContextValue = {
       }
     }, [token])
   
-    const activeLeague = useMemo(() => {
+        const activeLeague = useMemo(() => {
       if (!activeLeagueId) return undefined
   
       return leagues.find(
@@ -89,12 +94,17 @@ type LeagueContextValue = {
       )
     }, [leagues, activeLeagueId])
   
+    function handleSetActiveLeagueId(id: string) {
+      setActiveLeagueId(id)
+      localStorage.setItem('activeLeagueId', id)
+    }
+  
     const value = useMemo(
       () => ({
         leagues,
         activeLeague,
         activeLeagueId,
-        setActiveLeagueId,
+        setActiveLeagueId: handleSetActiveLeagueId,
         isLoading,
         error,
       }),
@@ -119,4 +129,6 @@ type LeagueContextValue = {
     if (!ctx) throw new Error("useLeague must be used within LeagueProvider")
     return ctx
   }
+
+  
   

@@ -5,7 +5,7 @@ import { Trophy, Medal, TrendingUp, Star, Flag, Crown, LogOut } from "lucide-rea
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { useLeague } from "@/context/league-context"
-import { getLeagueStandings, LeagueRankingEntry } from "@/lib/api/ranking"
+import { getLeagueStandings, StandingEntry } from "@/lib/api/ranking"
 import { cn } from "@/lib/utils"
 
 function Stat({
@@ -40,7 +40,7 @@ export function Profile() {
   const { activeLeague } = useLeague()
   const router = useRouter()
 
-  const [standings, setStandings] = useState<LeagueRankingEntry[]>([])
+  const [standings, setStandings] = useState<StandingEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export function Profile() {
       .finally(() => setIsLoading(false))
   }, [activeLeague, token])
 
-  const myStanding = standings.find((s) => s.ranking.userId === user?.id)
+  const myStanding = standings.find((s) => s.userId === user?.id)
 
   function handleLogout() {
     logout()
@@ -106,9 +106,10 @@ export function Profile() {
         </p>
       ) : myStanding ? (
         <div className="grid grid-cols-2 gap-3">
-          <Stat icon={Crown} label="Puntos totales" value={String(myStanding.ranking.totalPoints)} accent="primary" />
+          <Stat icon={Crown} label="Puntos totales" value={String(myStanding.totalPoints)} accent="primary" />
           <Stat icon={TrendingUp} label="Posición actual" value={`${myStanding.rank}º`} accent="arg" />
-          <Stat icon={Medal} label="Carreras puntuadas" value={String(myStanding.ranking.racesCounted)} accent="primary" />
+          <Stat icon={Medal} label="Carreras puntuadas" value={String(myStanding.racesCounted)} accent="primary" />
+          <Stat icon={Star} label="Fechas ganadas" value={String(myStanding.raceWins)} accent="arg" />
         </div>
       ) : (
         <p className="text-center text-sm text-muted-foreground">
