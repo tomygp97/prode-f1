@@ -1,9 +1,5 @@
 import { GrandPrix } from "../f1-data"
-
-const apiurl = process.env.NEXT_PUBLIC_API_URL;
-if (!apiurl) {
-    throw new Error("NEXT_PUBLIC_API_URL no está definida")
-}
+import { api } from "./client"
 
 export const RaceStatus = {
     SCHEDULED: 'scheduled',
@@ -62,12 +58,7 @@ export function toGrandPrix(race: RaceFromApi): GrandPrix {
 }
 
 export async function fetchNextGP(): Promise<GrandPrix> {
-    const res = await fetch(`${apiurl}/races/next`, {
-        cache: "no-store",
-    })
-    if (!res.ok) {
-        throw new Error(`GET /races/next → ${res.status}`)
-    }
-    const data: RaceFromApi = await res.json()
-    return toGrandPrix(data)
+    return api
+        .get<RaceFromApi>("/races/next")
+        .then(toGrandPrix)
 }
