@@ -21,7 +21,7 @@ export interface League {
 
 export interface UserLeague {
   league: League;
-  role: "owner" | "member";
+  role: "admin" | "member";
   joinedAt: string;
   membersCount: number;
   inviteCode: string;
