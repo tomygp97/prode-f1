@@ -38,18 +38,6 @@ export type Team = {
     { id: "col", driverNumber: 43, name: "Franco", acronym: "COL", teamId: "alpine"},
   ]
   
-  export function getDriver(id: string): Driver {
-    return drivers.find((d) => d.id === id) as Driver
-  }
-  
-  export function getTeam(id: string): Team {
-    return teams.find((t) => t.id === id) as Team
-  }
-  
-  export function driverTeam(driverId: string): Team {
-    return getTeam(getDriver(driverId).teamId)
-  }
-  
   export function fullName(d: Driver): string {
     return `${d.name}`
   }
@@ -110,38 +98,6 @@ export type Team = {
     { label: "Franco Colapinto — posición exacta", points: 10 },
     { label: "Campeón de Pilotos", points: 25 },
     { label: "Campeón de Constructores", points: 25 },
-  ]
-  
-  // Results screen data (official result of last GP)
-  export const officialResult = {
-    gpName: "GP de Italia",
-    pole: "nor",
-    top5: ["nor", "pia", "lec", "ver", "ham"],
-    safetyCar: true,
-    dnf: 3,
-    colapinto: 11,
-  }
-  
-  export const myPrediction = {
-    pole: "nor",
-    top5: ["nor", "ver", "lec", "pia", "rus"],
-    safetyCar: true,
-    dnf: 3,
-    colapinto: 11,
-  }
-  
-  export type ScoreBreakdownItem = {
-    category: string
-    detail: string
-    points: number
-  }
-  
-  export const scoreBreakdown: ScoreBreakdownItem[] = [
-    { category: "Pole Position", detail: "Norris — correcto", points: 5 },
-    { category: "Top 5", detail: "2 exactos + 2 pilotos correctos", points: 14 },
-    { category: "Safety Car", detail: "Sí — correcto", points: 3 },
-    { category: "DNF", detail: "3 abandonos — exacto", points: 5 },
-    { category: "Franco Colapinto", detail: "P11 — exacto", points: 10 },
   ]
   
   export const profile = {

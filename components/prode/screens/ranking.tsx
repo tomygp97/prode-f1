@@ -5,7 +5,7 @@ import { TrendingUp, TrendingDown, Minus, Medal, Flag } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { useLeague } from "@/context/league-context"
 import { getLeagueStandings, StandingEntry } from "@/lib/api/ranking"
-import { ActiveLeagueSwitcher } from "@/components/prode/active-league-switcher"
+import { LeagueSwitcherButton } from "@/components/prode/active-league-switcher"
 import { cn } from "@/lib/utils"
 
 function initials(name: string) {
@@ -66,7 +66,7 @@ export function Ranking() {
           <h1 className="font-heading text-2xl font-bold uppercase leading-tight">Ranking General</h1>
           <p className="truncate text-sm text-muted-foreground">{activeLeague?.league.name ?? "Sin liga seleccionada"}</p>
         </div>
-        <ActiveLeagueSwitcher />
+        <LeagueSwitcherButton />
       </div>
 
       {isLoading ? (

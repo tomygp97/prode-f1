@@ -1,9 +1,5 @@
 import { Team } from "../f1-data"
-
-const apiurl = process.env.NEXT_PUBLIC_API_URL;
-if (!apiurl) {
-    throw new Error("NEXT_PUBLIC_API_URL no está definida")
-}
+import { api } from "./client";
 
 export type TeamFromApi = {
     id: string,
@@ -21,10 +17,7 @@ export function toTeam(data: TeamFromApi): Team {
 }
 
 export async function fetchTeams(): Promise<Team[]> {
-    const res = await fetch(`${apiurl}/teams`);
-    if (!res.ok) {
-        throw new Error(`GET /teams -> ${res.status}`)
-    }
-    const data: TeamFromApi[] = await res.json()
-    return data.map(toTeam)
+    return api
+        .get<TeamFromApi[]>("/teams")
+        .then((data) => data.map(toTeam))
 }

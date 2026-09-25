@@ -5,7 +5,7 @@ import { ChevronDown, Check, X } from "lucide-react"
 import { useLeague } from "@/context/league-context"
 import { cn } from "@/lib/utils"
 
-export function ActiveLeagueSwitcher() {
+export function LeagueSwitcherButton() {
   const { leagues, activeLeague, setActiveLeagueId } = useLeague()
   const [open, setOpen] = useState(false)
 
@@ -18,7 +18,7 @@ export function ActiveLeagueSwitcher() {
         onClick={() => setOpen(true)}
         className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium"
       >
-        <span className="max-w-[160px] truncate">{activeLeague?.league.name ?? "Elegir liga"}</span>
+        <span className="max-w-[140px] truncate">{activeLeague?.league.name ?? "Elegir liga"}</span>
         <ChevronDown className="size-4 text-muted-foreground" />
       </button>
 
@@ -62,7 +62,7 @@ export function ActiveLeagueSwitcher() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{userLeague.league.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {userLeague.membersCount} jugadores · {userLeague.role === "owner" ? "Admin" : "Miembro"}
+                        {userLeague.membersCount} jugadores · {userLeague.role === "admin" ? "Admin" : "Miembro"}
                       </p>
                     </div>
                     {selected && <Check className="size-5 shrink-0 text-primary" />}
