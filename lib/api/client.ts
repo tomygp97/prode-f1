@@ -18,6 +18,13 @@ export class ApiRequestError extends Error {
   }
 }
 
+// Lo registra AuthProvider: cierra la sesión y manda al login
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler;
+}
+
 async function request<T>(path: string, options: RequestInit = {}, token?: string | null): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -29,6 +36,12 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
 
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
   const data = await response.json().catch(() => null);
+
+  // 401 con token = sesión vencida o inválida (un login fallido no manda token)
+  if (response.status === 401 && token) {
+    unauthorizedHandler?.();
+    throw new ApiRequestError('Tu sesión expiró. Volvé a ingresar.', 401);
+  }
 
   if (!response.ok) {
     const errorBody = data as ApiErrorBody | null;

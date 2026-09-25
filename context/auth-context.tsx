@@ -1,7 +1,8 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { api, ApiRequestError } from '@/lib/api/client';
+import { createContext, useCallback, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { api, setUnauthorizedHandler } from '@/lib/api/client';
 
 interface User {
   id: string;
@@ -31,20 +32,69 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+// Vencimiento del JWT (claim `exp`, en segundos) en ms; null si no se puede leer
+function tokenExpiresAt(token: string): number | null {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const { exp } = JSON.parse(atob(payload)) as { exp?: number };
+    return typeof exp === 'number' ? exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearStoredSession() {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('user');
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    clearStoredSession();
+  }, []);
+
+  // Sesión vencida: se cierra y se avisa en el login
+  const expireSession = useCallback(() => {
+    logout();
+    router.replace('/login?expired=1');
+  }, [logout, router]);
+
   useEffect(() => {
     const storedToken = localStorage.getItem('accessToken');
     const storedUser = localStorage.getItem('user');
-    if (storedToken && storedUser) {
+    const expiresAt = storedToken ? tokenExpiresAt(storedToken) : null;
+
+    if (storedToken && storedUser && (expiresAt === null || expiresAt > Date.now())) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
+    } else if (storedToken) {
+      clearStoredSession();
+      router.replace('/login?expired=1');
     }
     setIsLoading(false);
-  }, []);
+  }, [router]);
+
+  // Cualquier 401 del back con token cierra la sesión
+  useEffect(() => {
+    setUnauthorizedHandler(expireSession);
+    return () => setUnauthorizedHandler(null);
+  }, [expireSession]);
+
+  // Con la app abierta, se cierra justo cuando vence el token
+  useEffect(() => {
+    if (!token) return;
+    const expiresAt = tokenExpiresAt(token);
+    if (expiresAt === null) return;
+    const timer = setTimeout(expireSession, Math.max(0, expiresAt - Date.now()));
+    return () => clearTimeout(timer);
+  }, [token, expireSession]);
 
   async function login(email: string, password: string) {
     const data = await api.post<LoginResponse>('/auth/login', { email, password });
@@ -56,14 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function register(email: string, password: string, name: string) {
     await api.post<RegisterResponse>('/auth/register', { email, password, name });
-    await login(email, password); 
-  }
-
-  function logout() {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
+    await login(email, password);
   }
 
   return (

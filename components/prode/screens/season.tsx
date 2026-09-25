@@ -4,7 +4,8 @@ import { useState } from "react"
 import { ArrowLeft, Lock, Crown, Wrench, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { DriverPicker, DriverSlot } from "@/components/prode/driver-picker"
-import { teams } from "@/lib/f1-data"
+import { useDrivers } from "@/hooks/use-drivers"
+import { useTeams } from "@/hooks/use-teams"
 import { cn } from "@/lib/utils"
 
 export function Season() {
@@ -13,6 +14,8 @@ export function Season() {
   const [constructor, setConstructor] = useState<string | undefined>()
   const [pickerOpen, setPickerOpen] = useState(false)
   const [saved, setSaved] = useState(false)
+  const { drivers } = useDrivers()
+  const { teams } = useTeams()
 
   return (
     <div className="space-y-5 px-4 py-5">
@@ -50,6 +53,8 @@ export function Season() {
           </div>
         </div>
         <DriverSlot
+          drivers={drivers}
+          teams={teams}
           driverId={champion}
           placeholder="Seleccionar piloto"
           onClick={() => setPickerOpen(true)}
@@ -111,6 +116,8 @@ export function Season() {
       </button>
 
       <DriverPicker
+        drivers={drivers}
+        teams={teams}
         open={pickerOpen}
         title="Campeón de Pilotos"
         value={champion}

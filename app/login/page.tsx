@@ -1,12 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { ApiRequestError } from '@/lib/api/client';
 import Link from 'next/link';
 
-export default function LoginPage() {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  // /login?expired=1: la sesión venció (lo manda AuthProvider)
+  const sessionExpired = use(searchParams).expired === '1';
   const router = useRouter();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -33,6 +39,9 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-lg border border-neutral-800 bg-neutral-900 p-6">
         <h1 className="text-xl font-semibold text-white">Iniciar sesión</h1>
 
+        {sessionExpired && !error && (
+          <p className="rounded-md bg-neutral-800 px-3 py-2 text-sm text-neutral-300">Tu sesión expiró. Volvé a ingresar.</p>
+        )}
         {error && <p className="rounded-md bg-red-950 px-3 py-2 text-sm text-red-400">{error}</p>}
 
         <div className="space-y-1">
