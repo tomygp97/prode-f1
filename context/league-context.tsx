@@ -2,7 +2,27 @@
 
 import { useAuth } from "@/context/auth-context"
 import { fetchUserLeagues, UserLeague } from "@/lib/api/leagues"
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+
+// La liga elegida se recuerda en el navegador. localStorage puede fallar
+// (modo privado, storage bloqueado): en ese caso simplemente no se recuerda.
+const ACTIVE_LEAGUE_KEY = "activeLeagueId"
+
+function readStoredLeagueId(): string | null {
+  try {
+    return localStorage.getItem(ACTIVE_LEAGUE_KEY)
+  } catch {
+    return null
+  }
+}
+
+function storeLeagueId(id: string) {
+  try {
+    localStorage.setItem(ACTIVE_LEAGUE_KEY, id)
+  } catch {
+    // sin persistencia: la elección vale solo para esta sesión
+  }
+}
 
 type LeagueContextValue = {
     leagues: UserLeague[]
@@ -51,7 +71,7 @@ type LeagueContextValue = {
   
           setLeagues(data)
   
-          const storedLeagueId = localStorage.getItem('activeLeagueId')
+          const storedLeagueId = readStoredLeagueId()
           const storedLeagueIsValid = storedLeagueId && data.some((ul) => ul.league.id === storedLeagueId)
 
           if (storedLeagueIsValid) {
@@ -86,7 +106,7 @@ type LeagueContextValue = {
       }
     }, [token])
   
-        const activeLeague = useMemo(() => {
+    const activeLeague = useMemo(() => {
       if (!activeLeagueId) return undefined
   
       return leagues.find(
@@ -94,11 +114,11 @@ type LeagueContextValue = {
       )
     }, [leagues, activeLeagueId])
   
-    function handleSetActiveLeagueId(id: string) {
+    const handleSetActiveLeagueId = useCallback((id: string) => {
       setActiveLeagueId(id)
-      localStorage.setItem('activeLeagueId', id)
-    }
-  
+      storeLeagueId(id)
+    }, [])
+
     const value = useMemo(
       () => ({
         leagues,
@@ -112,6 +132,7 @@ type LeagueContextValue = {
         leagues,
         activeLeague,
         activeLeagueId,
+        handleSetActiveLeagueId,
         isLoading,
         error,
       ],

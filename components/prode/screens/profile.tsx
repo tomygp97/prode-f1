@@ -1,12 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Trophy, Medal, TrendingUp, Star, Flag, Crown, LogOut } from "lucide-react"
+import { Trophy, Medal, TrendingUp, Star, Crown, LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { useLeague } from "@/context/league-context"
-import { getLeagueStandings, StandingEntry } from "@/lib/api/ranking"
-import { cn } from "@/lib/utils"
+import { useLeagueStandings } from "@/hooks/use-league-standings"
+import { cn, initials } from "@/lib/utils"
 
 function Stat({
   icon: Icon,
@@ -37,22 +36,11 @@ function Stat({
 
 export function Profile() {
   const { user, token, logout } = useAuth()
-  const { activeLeague } = useLeague()
+  const { activeLeague, isLoading: leaguesLoading } = useLeague()
   const router = useRouter()
 
-  const [standings, setStandings] = useState<StandingEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    if (!activeLeague || !token) {
-      setIsLoading(false)
-      return
-    }
-    getLeagueStandings(activeLeague.league.id, token)
-      .then(setStandings)
-      .catch(() => setStandings([]))
-      .finally(() => setIsLoading(false))
-  }, [activeLeague, token])
+  const { standings, isLoading: standingsLoading } = useLeagueStandings(token, activeLeague?.league.id)
+  const isLoading = leaguesLoading || standingsLoading
 
   const myStanding = standings.find((s) => s.userId === user?.id)
 
@@ -61,14 +49,7 @@ export function Profile() {
     router.push("/login")
   }
 
-  const initials = user?.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : "?"
+  const userInitials = user?.name ? initials(user.name) : "?"
 
   return (
     <div className="space-y-5 px-4 py-5">
@@ -78,7 +59,7 @@ export function Profile() {
         <div className="px-4 pb-4">
           <div className="-mt-8 flex items-end gap-3">
             <div className="flex size-20 items-center justify-center rounded-2xl border-4 border-card bg-secondary font-heading text-2xl font-bold">
-              {initials}
+              {userInitials}
             </div>
             <div className="pb-1">
               <h1 className="font-heading text-xl font-bold uppercase leading-none">
