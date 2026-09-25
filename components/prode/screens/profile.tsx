@@ -1,12 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Trophy, Medal, TrendingUp, Star, Flag, Crown, LogOut } from "lucide-react"
+import { Trophy, Medal, TrendingUp, Star, Crown, LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { useLeague } from "@/context/league-context"
-import { getLeagueStandings, LeagueRankingEntry } from "@/lib/api/ranking"
-import { cn } from "@/lib/utils"
+import { useLeagueStandings } from "@/hooks/use-league-standings"
+import { cn, initials } from "@/lib/utils"
 
 function Stat({
   icon: Icon,
@@ -37,38 +36,20 @@ function Stat({
 
 export function Profile() {
   const { user, token, logout } = useAuth()
-  const { activeLeague } = useLeague()
+  const { activeLeague, isLoading: leaguesLoading } = useLeague()
   const router = useRouter()
 
-  const [standings, setStandings] = useState<LeagueRankingEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { standings, isLoading: standingsLoading } = useLeagueStandings(token, activeLeague?.league.id)
+  const isLoading = leaguesLoading || standingsLoading
 
-  useEffect(() => {
-    if (!activeLeague || !token) {
-      setIsLoading(false)
-      return
-    }
-    getLeagueStandings(activeLeague.league.id, token)
-      .then(setStandings)
-      .catch(() => setStandings([]))
-      .finally(() => setIsLoading(false))
-  }, [activeLeague, token])
-
-  const myStanding = standings.find((s) => s.ranking.userId === user?.id)
+  const myStanding = standings.find((s) => s.userId === user?.id)
 
   function handleLogout() {
     logout()
     router.push("/login")
   }
 
-  const initials = user?.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : "?"
+  const userInitials = user?.name ? initials(user.name) : "?"
 
   return (
     <div className="space-y-5 px-4 py-5">
@@ -78,7 +59,7 @@ export function Profile() {
         <div className="px-4 pb-4">
           <div className="-mt-8 flex items-end gap-3">
             <div className="flex size-20 items-center justify-center rounded-2xl border-4 border-card bg-secondary font-heading text-2xl font-bold">
-              {initials}
+              {userInitials}
             </div>
             <div className="pb-1">
               <h1 className="font-heading text-xl font-bold uppercase leading-none">
@@ -106,9 +87,10 @@ export function Profile() {
         </p>
       ) : myStanding ? (
         <div className="grid grid-cols-2 gap-3">
-          <Stat icon={Crown} label="Puntos totales" value={String(myStanding.ranking.totalPoints)} accent="primary" />
+          <Stat icon={Crown} label="Puntos totales" value={String(myStanding.totalPoints)} accent="primary" />
           <Stat icon={TrendingUp} label="Posición actual" value={`${myStanding.rank}º`} accent="arg" />
-          <Stat icon={Medal} label="Carreras puntuadas" value={String(myStanding.ranking.racesCounted)} accent="primary" />
+          <Stat icon={Medal} label="Carreras puntuadas" value={String(myStanding.racesCounted)} accent="primary" />
+          <Stat icon={Star} label="Fechas ganadas" value={String(myStanding.raceWins)} accent="arg" />
         </div>
       ) : (
         <p className="text-center text-sm text-muted-foreground">

@@ -2,7 +2,27 @@
 
 import { useAuth } from "@/context/auth-context"
 import { fetchUserLeagues, UserLeague } from "@/lib/api/leagues"
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+
+// La liga elegida se recuerda en el navegador. localStorage puede fallar
+// (modo privado, storage bloqueado): en ese caso simplemente no se recuerda.
+const ACTIVE_LEAGUE_KEY = "activeLeagueId"
+
+function readStoredLeagueId(): string | null {
+  try {
+    return localStorage.getItem(ACTIVE_LEAGUE_KEY)
+  } catch {
+    return null
+  }
+}
+
+function storeLeagueId(id: string) {
+  try {
+    localStorage.setItem(ACTIVE_LEAGUE_KEY, id)
+  } catch {
+    // sin persistencia: la elección vale solo para esta sesión
+  }
+}
 
 type LeagueContextValue = {
     leagues: UserLeague[]
@@ -51,7 +71,12 @@ type LeagueContextValue = {
   
           setLeagues(data)
   
-          if (data.length > 0) {
+          const storedLeagueId = readStoredLeagueId()
+          const storedLeagueIsValid = storedLeagueId && data.some((ul) => ul.league.id === storedLeagueId)
+
+          if (storedLeagueIsValid) {
+            setActiveLeagueId(storedLeagueId)
+          } else if (data.length > 0) {
             const mostRecent = [...data].sort(
               (a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime(),
             )[0]
@@ -89,12 +114,17 @@ type LeagueContextValue = {
       )
     }, [leagues, activeLeagueId])
   
+    const handleSetActiveLeagueId = useCallback((id: string) => {
+      setActiveLeagueId(id)
+      storeLeagueId(id)
+    }, [])
+
     const value = useMemo(
       () => ({
         leagues,
         activeLeague,
         activeLeagueId,
-        setActiveLeagueId,
+        setActiveLeagueId: handleSetActiveLeagueId,
         isLoading,
         error,
       }),
@@ -102,6 +132,7 @@ type LeagueContextValue = {
         leagues,
         activeLeague,
         activeLeagueId,
+        handleSetActiveLeagueId,
         isLoading,
         error,
       ],
@@ -119,4 +150,6 @@ type LeagueContextValue = {
     if (!ctx) throw new Error("useLeague must be used within LeagueProvider")
     return ctx
   }
+
+  
   
