@@ -57,36 +57,6 @@ export type Team = {
     status: "abiertas" | "cerradas"
   }
   
-  export type LeagueMember = {
-    id: string
-    name: string
-    username: string
-    points: number
-    raceWins: number
-    trend: "up" | "down" | "same"
-    isMe?: boolean
-  }
-  
-  export const league = {
-    name: "Los Pibes de la F1",
-    season: "2026",
-    inviteCode: "PRODE-9F2K",
-    members: [
-      { id: "u1", name: "Tomás Giménez", username: "tomi_vroom", points: 412, raceWins: 5, trend: "same" as const },
-      { id: "u2", name: "Juan Cruz Pérez", username: "jcp17", points: 389, raceWins: 4, trend: "up" as const },
-      { id: "u3", name: "Martín Sosa", username: "tincho_f1", points: 366, raceWins: 3, trend: "down" as const },
-      { id: "me", name: "Vos", username: "vos", points: 341, raceWins: 2, trend: "up" as const, isMe: true },
-      { id: "u5", name: "Lucía Romero", username: "luchi", points: 318, raceWins: 1, trend: "down" as const },
-      { id: "u6", name: "Nico Fernández", username: "nicof", points: 305, raceWins: 1, trend: "up" as const },
-      { id: "u7", name: "Sofía Aguirre", username: "sofi_a", points: 287, raceWins: 0, trend: "same" as const },
-      { id: "u8", name: "Pedro Molina", username: "pedrom", points: 264, raceWins: 0, trend: "down" as const },
-      { id: "u9", name: "Camila Díaz", username: "cami", points: 241, raceWins: 0, trend: "up" as const },
-      { id: "u10", name: "Bruno Castro", username: "bruno", points: 219, raceWins: 0, trend: "down" as const },
-    ] as LeagueMember[],
-  }
-  
-  export const myRank = 4
-  export const myPoints = 341
   
   // Scoring reference
   export const scoring = [
