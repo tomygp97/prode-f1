@@ -62,7 +62,7 @@ export function LeagueSwitcherButton() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{userLeague.league.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {userLeague.membersCount} jugadores · {userLeague.role === "owner" ? "Admin" : "Miembro"}
+                        {userLeague.membersCount} jugadores · {userLeague.role === "admin" ? "Admin" : "Miembro"}
                       </p>
                     </div>
                     {selected && <Check className="size-5 shrink-0 text-primary" />}
