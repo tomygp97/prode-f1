@@ -1,66 +1,44 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import {
-  ArrowLeft,
-  Users,
-  Plus,
-  LogIn,
-  Copy,
-  Check,
-  Share2,
-  Crown,
-} from "lucide-react"
+import { useState } from "react"
+import { ArrowLeft, Check, List, LogIn, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useLeague } from "@/context/league-context"
+import { useDrivers } from "@/hooks/use-drivers"
+import { useTeams } from "@/hooks/use-teams"
+import { League } from "@/lib/api/leagues"
 import { cn } from "@/lib/utils"
-import { useAuth } from "@/context/auth-context"
-import { getCurrentSeason } from "@/lib/api/seasons"
-import { createLeague } from "@/lib/api/leagues"
+import { MyLeagues } from "@/components/leagues/my-leagues"
+import { CreateLeagueForm } from "@/components/leagues/create-league-form"
+import { JoinLeagueForm } from "@/components/leagues/join-league-form"
+import { InviteShare } from "@/components/leagues/invite-share"
 
-export function Leagues() {
+type Tab = "mis" | "crear" | "unirse"
+
+const tabs = [
+  { id: "mis" as const, label: "Mis Ligas", icon: List },
+  { id: "crear" as const, label: "Crear", icon: Plus },
+  { id: "unirse" as const, label: "Unirse", icon: LogIn },
+]
+
+export function Leagues({ initialCode }: { initialCode?: string }) {
   const router = useRouter()
-  const { token } = useAuth()
-  const [tab, setTab] = useState<"crear" | "unirse">("crear")
-  const [leagueName, setLeagueName] = useState("")
-  const [joinCode, setJoinCode] = useState("")
-  const [created, setCreated] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const { leagues, isLoading: leaguesLoading, reload } = useLeague()
+  const { drivers } = useDrivers()
+  const { teams } = useTeams()
 
-  const [seasonId, setSeasonId] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [createdLeague, setCreatedLeague] = useState<{ name: string; inviteCode: string } | null>(null)
+  // Con ?code= (link de invitación) se abre directo en Unirse
+  const [selectedTab, setSelectedTab] = useState<Tab | null>(initialCode ? "unirse" : null)
+  const [createdLeague, setCreatedLeague] = useState<League | null>(null)
+  const [joinedNotice, setJoinedNotice] = useState(false)
 
-  useEffect(() => {
-    getCurrentSeason()
-      .then((season) => setSeasonId(season.id))
-      .catch(() => setError("No se pudo cargar la temporada actual"))
-  }, [])
+  // Sin pestaña elegida: Mis Ligas, o Crear si todavía no tiene ninguna
+  const tab: Tab = selectedTab ?? (leaguesLoading || leagues.length > 0 ? "mis" : "crear")
 
-  async function handleCreateLeague() {
-    if (!seasonId || !token) return
-    setIsSubmitting(true)
-    setError(null)
-    try {
-      const league = await createLeague(
-        { name: leagueName, isPublic: false, seasonId },
-        token,
-      )
-      setCreatedLeague({ name: league.name, inviteCode: league.inviteCode })
-      setCreated(true)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo crear la liga")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const shareLink = createdLeague ? `prodef1.app/j/${createdLeague.inviteCode}` : ""
-
-  function copy(text: string) {
-    navigator.clipboard?.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+  function selectTab(next: Tab) {
+    setSelectedTab(next)
+    setCreatedLeague(null)
+    setJoinedNotice(false)
   }
 
   return (
@@ -73,23 +51,16 @@ export function Leagues() {
         <ArrowLeft className="size-4" /> Volver
       </button>
 
-      <h1 className="font-heading text-2xl font-bold uppercase leading-tight">Ligas Privadas</h1>
+      <h1 className="font-heading text-2xl font-bold uppercase leading-tight">Ligas</h1>
 
-      {/* Tabs */}
-      <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-card p-1">
-        {[
-          { id: "crear" as const, label: "Crear Liga", icon: Plus },
-          { id: "unirse" as const, label: "Unirse", icon: LogIn },
-        ].map((t) => {
+      <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-card p-1">
+        {tabs.map((t) => {
           const Icon = t.icon
           return (
             <button
               key={t.id}
               type="button"
-              onClick={() => {
-                setTab(t.id)
-                setCreated(false)
-              }}
+              onClick={() => selectTab(t.id)}
               className={cn(
                 "flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-heading text-sm font-bold uppercase transition-colors",
                 tab === t.id ? "bg-primary text-primary-foreground" : "text-muted-foreground",
@@ -101,109 +72,53 @@ export function Leagues() {
         })}
       </div>
 
-      {tab === "crear" && !created && (
-        <section className="space-y-4 rounded-2xl border border-border bg-card p-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Nombre de la Liga</label>
-            <input
-              value={leagueName}
-              onChange={(e) => setLeagueName(e.target.value)}
-              placeholder="Ej: Los Cracks de la F1"
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary placeholder:text-muted-foreground"
-            />
-          </div>
-
-          {error && <p className="text-sm text-red-500">{error}</p>}
-
-          <button
-            type="button"
-            onClick={handleCreateLeague}
-            disabled={!leagueName || !seasonId || isSubmitting}
-            className="w-full rounded-xl bg-primary py-3.5 font-heading text-base font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
-          >
-            {isSubmitting ? "Creando..." : "Crear Liga"}
-          </button>
-        </section>
+      {joinedNotice && (
+        <p className="flex items-center gap-2 rounded-xl border border-arg/40 bg-arg/10 px-3 py-2.5 text-sm text-arg">
+          <Check className="size-4" /> ¡Te uniste! Ya podés cargar tu predicción.
+        </p>
       )}
 
-      {tab === "crear" && created && createdLeague && (
+      {tab === "mis" &&
+        (leaguesLoading ? (
+          <p className="text-center text-sm text-muted-foreground">Cargando ligas...</p>
+        ) : (
+          <MyLeagues drivers={drivers} />
+        ))}
+
+      {tab === "crear" && !createdLeague && (
+        <CreateLeagueForm
+          drivers={drivers}
+          teams={teams}
+          onCreated={(league) => {
+            setCreatedLeague(league)
+            reload(league.id)
+          }}
+        />
+      )}
+
+      {tab === "crear" && createdLeague && (
         <section className="space-y-4 rounded-2xl border border-arg/40 bg-card p-4 animate-in fade-in">
           <div className="flex items-center gap-2 text-arg">
             <Check className="size-5" />
             <p className="font-heading text-lg font-bold uppercase">¡Liga creada!</p>
           </div>
           <p className="text-sm text-muted-foreground">
-            Compartí el código o el link para invitar a tus amigos a <strong className="text-foreground">{createdLeague.name}</strong>.
+            Compartí el código o el link para invitar a tus amigos a{" "}
+            <strong className="text-foreground">{createdLeague.name}</strong>. Lo tenés siempre en Mis Ligas.
           </p>
-
-          <div>
-            <p className="mb-1.5 text-xs uppercase tracking-wider text-muted-foreground">
-              Código de invitación
-            </p>
-            <button
-              type="button"
-              onClick={() => copy(createdLeague.inviteCode)}
-              className="flex w-full items-center justify-between rounded-xl border border-dashed border-border bg-background px-4 py-3"
-            >
-              <span className="font-mono text-lg font-bold tracking-[0.2em]">
-                {createdLeague.inviteCode}
-              </span>
-              {copied ? (
-                <Check className="size-4 text-arg" />
-              ) : (
-                <Copy className="size-4 text-muted-foreground" />
-              )}
-            </button>
-          </div>
-
-          <div>
-            <p className="mb-1.5 text-xs uppercase tracking-wider text-muted-foreground">
-              Link para compartir
-            </p>
-            <div className="flex gap-2">
-              <span className="flex-1 truncate rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-muted-foreground">
-                {shareLink}
-              </span>
-              <button
-                type="button"
-                onClick={() => copy(shareLink)}
-                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-medium"
-              >
-                <Share2 className="size-4" /> Copiar
-              </button>
-            </div>
-          </div>
+          <InviteShare leagueName={createdLeague.name} inviteCode={createdLeague.inviteCode} />
         </section>
       )}
 
       {tab === "unirse" && (
-        <section className="space-y-4 rounded-2xl border border-border bg-card p-4">
-          <div className="flex flex-col items-center py-2 text-center">
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-arg/15 text-arg">
-              <Users className="size-6" />
-            </span>
-            <p className="mt-2 font-heading text-lg font-bold uppercase">Unirse a una Liga</p>
-            <p className="text-sm text-muted-foreground">
-              Pedile el código de invitación a quien creó la liga.
-            </p>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Código de invitación</label>
-            <input
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="PRODE-XXXX"
-              className="w-full rounded-xl border border-border bg-background px-3 py-3 text-center font-mono text-lg font-bold tracking-[0.2em] outline-none focus:border-primary placeholder:tracking-normal placeholder:text-muted-foreground"
-            />
-          </div>
-          <button
-            type="button"
-            disabled={joinCode.length < 4}
-            className="w-full rounded-xl bg-primary py-3.5 font-heading text-base font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
-          >
-            Unirme a la Liga
-          </button>
-        </section>
+        <JoinLeagueForm
+          initialCode={initialCode}
+          onJoined={(leagueId) => {
+            reload(leagueId)
+            setSelectedTab("mis")
+            setJoinedNotice(true)
+          }}
+        />
       )}
     </div>
   )

@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/context/auth-context"
 import { fetchUserLeagues, UserLeague } from "@/lib/api/leagues"
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 
 // La liga elegida se recuerda en el navegador. localStorage puede fallar
 // (modo privado, storage bloqueado): en ese caso simplemente no se recuerda.
@@ -29,6 +29,8 @@ type LeagueContextValue = {
     activeLeague?: UserLeague
     activeLeagueId?: string
     setActiveLeagueId: (id: string) => void
+    /** Vuelve a cargar las ligas (después de crear, unirse o salir). Opcional: la liga que queda activa. */
+    reload: (preferLeagueId?: string) => void
     isLoading: boolean
     error: string | null
   }
@@ -46,7 +48,9 @@ type LeagueContextValue = {
     const [activeLeagueId, setActiveLeagueId] = useState<string>()
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-  
+    const [reloadKey, setReloadKey] = useState(0)
+    const preferredLeagueIdRef = useRef<string | undefined>(undefined)
+
     useEffect(() => {
       if (!token) {
         setLeagues([])
@@ -71,10 +75,15 @@ type LeagueContextValue = {
   
           setLeagues(data)
   
+          const preferredLeagueId = preferredLeagueIdRef.current
+          preferredLeagueIdRef.current = undefined
           const storedLeagueId = readStoredLeagueId()
           const storedLeagueIsValid = storedLeagueId && data.some((ul) => ul.league.id === storedLeagueId)
 
-          if (storedLeagueIsValid) {
+          if (preferredLeagueId && data.some((ul) => ul.league.id === preferredLeagueId)) {
+            setActiveLeagueId(preferredLeagueId)
+            storeLeagueId(preferredLeagueId)
+          } else if (storedLeagueIsValid) {
             setActiveLeagueId(storedLeagueId)
           } else if (data.length > 0) {
             const mostRecent = [...data].sort(
@@ -104,7 +113,12 @@ type LeagueContextValue = {
       return () => {
         cancelled = true
       }
-    }, [token])
+    }, [token, reloadKey])
+
+    const reload = useCallback((preferLeagueId?: string) => {
+      preferredLeagueIdRef.current = preferLeagueId
+      setReloadKey((key) => key + 1)
+    }, [])
   
     const activeLeague = useMemo(() => {
       if (!activeLeagueId) return undefined
@@ -125,6 +139,7 @@ type LeagueContextValue = {
         activeLeague,
         activeLeagueId,
         setActiveLeagueId: handleSetActiveLeagueId,
+        reload,
         isLoading,
         error,
       }),
@@ -133,6 +148,7 @@ type LeagueContextValue = {
         activeLeague,
         activeLeagueId,
         handleSetActiveLeagueId,
+        reload,
         isLoading,
         error,
       ],
