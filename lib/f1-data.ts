@@ -12,31 +12,7 @@ export type Team = {
     teamId: string
   }
   
-  export const teams: Team[] = [
-    { id: "rb", name: "Red Bull Racing", colour: "#3671C6" },
-    { id: "mclaren", name: "McLaren", colour: "#FF8000" },
-    { id: "ferrari", name: "Ferrari", colour: "#E8002D" },
-    { id: "mercedes", name: "Mercedes", colour: "#27F4D2" },
-    { id: "aston", name: "Aston Martin", colour: "#229971" },
-    { id: "alpine", name: "Alpine", colour: "#0093CC" },
-    { id: "williams", name: "Williams", colour: "#64C4FF" },
-    { id: "rbf1", name: "RB", colour: "#6692FF" },
-    { id: "haas", name: "Haas", colour: "#B6BABD" },
-    { id: "sauber", name: "Kick Sauber", colour: "#52E252" },
-  ]
   
-  export const drivers: Driver[] = [
-    { id: "ver", driverNumber: 1, name: "Max", acronym: "VER", teamId: "rb"},
-    { id: "nor", driverNumber: 4, name: "Lando", acronym: "NOR", teamId: "mclaren"},
-    { id: "pia", driverNumber: 81, name: "Oscar", acronym: "PIA", teamId: "mclaren"},
-    { id: "lec", driverNumber: 16, name: "Charles", acronym: "LEC", teamId: "ferrari"},
-    { id: "ham", driverNumber: 44, name: "Lewis", acronym: "HAM", teamId: "ferrari"},
-    { id: "rus", driverNumber: 63, name: "George", acronym: "RUS", teamId: "mercedes"},
-    { id: "ant", driverNumber: 12, name: "Andrea Kimi", acronym: "ANT", teamId: "mercedes"},
-    { id: "alo", driverNumber: 14, name: "Fernando", acronym: "ALO", teamId: "aston"},
-    { id: "str", driverNumber: 18, name: "Lance", acronym: "STR", teamId: "aston"},
-    { id: "col", driverNumber: 43, name: "Franco", acronym: "COL", teamId: "alpine"},
-  ]
   
   export function fullName(d: Driver): string {
     return `${d.name}`
