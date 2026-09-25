@@ -127,6 +127,7 @@ export function DriverSlot({
   driverId,
   placeholder,
   onClick,
+  disabled = false,
 }: {
   drivers: Driver[]
   teams: Team[]
@@ -134,6 +135,7 @@ export function DriverSlot({
   driverId?: string
   placeholder: string
   onClick: () => void
+  disabled?: boolean
 }) {
   const driver = driverId ? drivers.find((d) => d.id === driverId) : undefined
   const team = driver ? findTeam(teams, driver.teamId) : undefined
@@ -142,8 +144,9 @@ export function DriverSlot({
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={cn(
-        "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors",
+        "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-background",
         driver
           ? "border-border bg-background hover:bg-secondary"
           : "border-dashed border-border bg-background/40 hover:bg-secondary",
