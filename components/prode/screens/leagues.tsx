@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation"
 import { useLeague } from "@/context/league-context"
 import { useDrivers } from "@/hooks/use-drivers"
 import { useTeams } from "@/hooks/use-teams"
+import { useNextGP } from "@/hooks/use-next-gp"
+import { useRaceEntries } from "@/hooks/use-race-entries"
 import { League } from "@/lib/api/leagues"
 import { cn } from "@/lib/utils"
 import { MyLeagues } from "@/components/leagues/my-leagues"
@@ -26,6 +28,9 @@ export function Leagues({ initialCode }: { initialCode?: string }) {
   const { leagues, isLoading: leaguesLoading, reload } = useLeague()
   const { drivers } = useDrivers()
   const { teams } = useTeams()
+  // El selector de piloto a seguir ofrece la grilla del próximo GP
+  const { nextGP } = useNextGP()
+  const { drivers: gridDrivers, teams: gridTeams } = useRaceEntries(nextGP?.id)
 
   // Con ?code= (link de invitación) se abre directo en Unirse
   const [selectedTab, setSelectedTab] = useState<Tab | null>(initialCode ? "unirse" : null)
@@ -89,6 +94,8 @@ export function Leagues({ initialCode }: { initialCode?: string }) {
         <CreateLeagueForm
           drivers={drivers}
           teams={teams}
+          gridDrivers={gridDrivers}
+          gridTeams={gridTeams}
           onCreated={(league) => {
             setCreatedLeague(league)
             reload(league.id)

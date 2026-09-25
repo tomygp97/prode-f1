@@ -42,8 +42,18 @@ export type RaceDriverResultFromApi = {
     id: string
     raceId: string
     driverId: string
+    teamId: string // equipo con el que corrió ESA carrera
     position: number | null
     dnf: boolean
+}
+
+// Piloto de la grilla de una carrera (GET /races/:id/entries)
+export type RaceGridEntryFromApi = {
+    driverId: string
+    driverNumber: number
+    name: string
+    acronym: string
+    team: { id: string; name: string; colour: string }
 }
 
 export type RaceResultsFromApi = {
@@ -112,4 +122,9 @@ export function fetchLastResultsSyncedRace(): Promise<RaceFromApi | null> {
 
 export function fetchRaceResults(raceId: string): Promise<RaceResultsFromApi> {
     return api.get<RaceResultsFromApi>(`/races/${raceId}/results`)
+}
+
+// Grilla de la carrera; si todavía no tiene (antes de la FP1), el back devuelve la última conocida
+export function fetchRaceEntries(raceId: string): Promise<RaceGridEntryFromApi[]> {
+    return api.get<RaceGridEntryFromApi[]>(`/races/${raceId}/entries`)
 }
