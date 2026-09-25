@@ -13,25 +13,29 @@ const columns = "grid grid-cols-[2rem_1fr_auto_auto] items-center gap-3 px-4"
 export function StandingsTable({
   standings,
   currentUserId,
+  showHeader = true,
 }: {
   standings: StandingEntry[]
   currentUserId?: string
+  showHeader?: boolean
 }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-card">
-      <div
-        className={cn(
-          columns,
-          "border-b border-border py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
-        )}
-      >
-        <span>Pos</span>
-        <span>Usuario</span>
-        <span className="flex items-center gap-1" title="Tendencia y fechas ganadas">
-          <Medal className="size-3" />
-        </span>
-        <span>Pts</span>
-      </div>
+      {showHeader && (
+        <div
+          className={cn(
+            columns,
+            "border-b border-border py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
+          )}
+        >
+          <span>Pos</span>
+          <span>Usuario</span>
+          <span className="flex items-center gap-1" title="Tendencia y fechas ganadas">
+            <Medal className="size-3" />
+          </span>
+          <span>Pts</span>
+        </div>
+      )}
       {standings.map((s, i) => {
         const isMe = s.userId === currentUserId
         return (
