@@ -105,6 +105,7 @@ export function toGrandPrix(race: RaceFromApi): GrandPrix {
         circuit: race.circuit,
         country: race.country,
         flag: countryFlags[race.country] ?? "🏁",
+        qualifyingDate: race.qualifyingStartAt ?? "",
         date: race.raceStartAt ?? "",
         status: mapPredictionStatus(race.status),
     }
@@ -114,6 +115,16 @@ export function toGrandPrix(race: RaceFromApi): GrandPrix {
 export async function fetchNextGP(): Promise<GrandPrix | null> {
     const race = await api.get<RaceFromApi | null>("/races/next")
     return race ? toGrandPrix(race) : null
+}
+
+// Fin de semana en curso: ya empezó la qualy y todavía no hay resultados (null si no hay)
+export function fetchCurrentRace(): Promise<RaceFromApi | null> {
+    return api.get<RaceFromApi | null>("/races/current")
+}
+
+// Próxima carrera con predicciones abiertas (la qualy todavía no empezó)
+export function fetchNextRace(): Promise<RaceFromApi | null> {
+    return api.get<RaceFromApi | null>("/races/next")
 }
 
 export function fetchLastResultsSyncedRace(): Promise<RaceFromApi | null> {

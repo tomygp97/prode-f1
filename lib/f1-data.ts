@@ -29,6 +29,7 @@ export type Team = {
     circuit: string
     country: string
     flag: string
-    date: string // ISO
+    qualifyingDate: string // ISO: hasta acá se puede predecir ("" si no se conoce)
+    date: string // ISO (largada de la carrera)
     status: "abiertas" | "cerradas"
   }

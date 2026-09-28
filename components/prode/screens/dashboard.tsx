@@ -2,27 +2,43 @@
 
 import { Users } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useNextGP } from "@/hooks/use-next-gp"
+import { useRaceWeekend } from "@/hooks/use-race-weekend"
+import { useNow } from "@/hooks/use-now"
+import { shouldShowResultsBanner } from "@/lib/races/weekend"
 import { NextGpCard } from "@/components/dashboard/next-gp-card"
+import { LiveRaceCard } from "@/components/dashboard/live-race-card"
+import { ResultsReadyBanner } from "@/components/dashboard/results-ready-banner"
 import { LeagueSummary } from "@/components/dashboard/league-summary"
 
 export function Dashboard() {
   const router = useRouter()
-  const { nextGP, isLoading, error } = useNextGP()
+  const { current, next, lastResults, isLoading, error } = useRaceWeekend()
+  const now = useNow()
 
   return (
     <div className="space-y-5 px-4 py-5">
-      {/* El próximo GP maneja sus estados: sin GP (fin de temporada) se sigue viendo la liga */}
+      {/* Carreras: fin de semana en curso, resultados nuevos y próximo GP.
+          Sin GP (fin de temporada) se sigue viendo la liga */}
       {isLoading ? (
         <p className="text-muted-foreground">Cargando próximo GP...</p>
       ) : error ? (
         <p className="text-destructive">{error}</p>
-      ) : nextGP ? (
-        <NextGpCard gp={nextGP} />
       ) : (
-        <p className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-          No hay próximo Gran Premio programado.
-        </p>
+        <>
+          {current && <LiveRaceCard race={current} />}
+          {lastResults && shouldShowResultsBanner(lastResults, next, current, now) && (
+            <ResultsReadyBanner race={lastResults} />
+          )}
+          {next ? (
+            <NextGpCard race={next} compact={current !== null} />
+          ) : (
+            !current && (
+              <p className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+                No hay próximo Gran Premio programado.
+              </p>
+            )
+          )}
+        </>
       )}
 
       <LeagueSummary />

@@ -1,64 +1,55 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Image from "next/image"
-import { CalendarDays, Clock, Flag, MapPin } from "lucide-react"
+import Link from "next/link"
+import { CalendarDays, ChevronRight, Flag, MapPin, Timer } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { GrandPrix } from "@/lib/f1-data"
-import { cn } from "@/lib/utils"
+import { RaceFromApi, toGrandPrix } from "@/lib/api/races"
+import { formatArgDateTime } from "@/lib/races/weekend"
+import { useNow } from "@/hooks/use-now"
+import { Countdown, shortTimeUntil } from "./countdown"
 
-const ARG_TIMEZONE = "America/Argentina/Buenos_Aires"
-
-function useCountdown(target: string) {
-  const [now, setNow] = useState<number | null>(null)
-  useEffect(() => {
-    const tick = () => setNow(Date.now())
-    const first = setTimeout(tick, 0)
-    const t = setInterval(tick, 1000)
-    return () => {
-      clearTimeout(first)
-      clearInterval(t)
-    }
-  }, [])
-  if (now === null || !target) return { days: 0, hours: 0, minutes: 0, seconds: 0 }
-  const diff = Math.max(0, new Date(target).getTime() - now)
-  return {
-    days: Math.floor(diff / 86400000),
-    hours: Math.floor((diff % 86400000) / 3600000),
-    minutes: Math.floor((diff % 3600000) / 60000),
-    seconds: Math.floor((diff % 60000) / 1000),
-  }
-}
-
-// "dom 26 sep" y "08:00 hs ARG", en hora de Argentina
-function formatRaceStart(iso: string) {
-  if (!iso) return { day: "A confirmar", time: "" }
-  const date = new Date(iso)
-  const day = new Intl.DateTimeFormat("es-AR", {
-    weekday: "short", day: "numeric", month: "short", timeZone: ARG_TIMEZONE,
-  }).format(date).replace(/[.,]/g, "")
-  const time = new Intl.DateTimeFormat("es-AR", {
-    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: ARG_TIMEZONE,
-  }).format(date)
-  return { day, time: `${time} hs ARG` }
-}
-
-function CountdownBox({ value, label }: { value: number; label: string }) {
+function Schedule({ label, iso }: { label: string; iso: string }) {
+  const { day, time } = formatArgDateTime(iso)
   return (
-    <div className="flex flex-col items-center">
-      <div className="flex h-12 w-full min-w-12 items-center justify-center rounded-lg border border-border bg-background/70 font-heading text-2xl font-bold tabular-nums">
-        {String(value).padStart(2, "0")}
-      </div>
-      <span className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
-    </div>
+    <span className="flex items-center gap-2">
+      <CalendarDays className="size-4 shrink-0 text-primary" />
+      <span>
+        {label}: <span className="capitalize">{day}</span>
+        {time && ` · ${time}`}
+      </span>
+    </span>
   )
 }
 
-export function NextGpCard({ gp }: { gp: GrandPrix }) {
+/**
+ * Próximo GP con predicciones abiertas. La cuenta regresiva va hasta la qualy: es el plazo
+ * para predecir. `compact` = versión chica debajo de la tarjeta en vivo del fin de semana.
+ */
+export function NextGpCard({ race, compact = false }: { race: RaceFromApi; compact?: boolean }) {
   const router = useRouter()
-  const c = useCountdown(gp.date)
-  const start = formatRaceStart(gp.date)
-  const open = gp.status === "abiertas"
+  const gp = toGrandPrix(race)
+  const now = useNow()
+
+  if (compact) {
+    return (
+      <Link
+        href="/predictions?race=next"
+        className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-secondary"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Próximo GP · Fecha {gp.round}</p>
+          <p className="truncate font-heading text-lg font-bold uppercase leading-tight">
+            {gp.flag} {gp.name}
+          </p>
+          <p className="mt-0.5 flex items-center gap-1 text-xs text-arg">
+            <Timer className="size-3.5" /> Predicciones abiertas · cierran en {shortTimeUntil(gp.qualifyingDate, now)}
+          </p>
+        </div>
+        <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+      </Link>
+    )
+  }
 
   return (
     <section>
@@ -79,14 +70,9 @@ export function NextGpCard({ gp }: { gp: GrandPrix }) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
           <div className="absolute left-4 top-4">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
-                open ? "bg-arg/20 text-arg" : "bg-primary/20 text-primary",
-              )}
-            >
-              <span className={cn("size-1.5 rounded-full", open ? "bg-arg" : "bg-primary")} />
-              Predicciones {gp.status}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-arg/20 px-2.5 py-1 text-xs font-semibold text-arg">
+              <span className="size-1.5 rounded-full bg-arg" />
+              Predicciones abiertas
             </span>
           </div>
           <div className="absolute bottom-3 left-4 right-4">
@@ -102,26 +88,13 @@ export function NextGpCard({ gp }: { gp: GrandPrix }) {
               <MapPin className="size-4 text-primary" />
               {gp.circuit}
             </div>
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-2 capitalize">
-                <CalendarDays className="size-4 text-primary" />
-                {start.day}
-              </span>
-              {start.time && (
-                <span className="flex items-center gap-2">
-                  <Clock className="size-4 text-primary" />
-                  {start.time}
-                </span>
-              )}
-            </div>
+            {gp.qualifyingDate && <Schedule label="Clasificación" iso={gp.qualifyingDate} />}
+            <Schedule label="Carrera" iso={gp.date} />
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
-            <CountdownBox value={c.days} label="Días" />
-            <CountdownBox value={c.hours} label="Hs" />
-            <CountdownBox value={c.minutes} label="Min" />
-            <CountdownBox value={c.seconds} label="Seg" />
-          </div>
+          {gp.qualifyingDate && (
+            <Countdown target={gp.qualifyingDate} label="Las predicciones cierran en" />
+          )}
 
           <button
             type="button"
