@@ -1,21 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { X, Search, Check } from "lucide-react"
 import { Driver, findTeam, fullName, Team } from "@/lib/f1-data"
 import { DriverAvatar } from "./driver-avatar"
 import { cn, displayColour } from "@/lib/utils"
 
-export function DriverPicker({
-  drivers,
-  teams,
-  open,
-  title,
-  value,
-  exclude = [],
-  onClose ,
-  onSelect,
-}: {
+type DriverPickerProps = {
   drivers: Driver[]
   teams: Team[]
   open: boolean
@@ -24,14 +15,24 @@ export function DriverPicker({
   exclude?: string[]
   onClose: () => void
   onSelect: (id: string) => void
-}) {
-  const [query, setQuery] = useState("")
+}
 
-  useEffect(() => {
-    if (open) setQuery("")
-  }, [open])
-
+// Cerrado no se monta: cada vez que se abre, el panel arranca de cero (buscador vacío)
+export function DriverPicker({ open, ...props }: DriverPickerProps) {
   if (!open) return null
+  return <DriverPickerSheet {...props} />
+}
+
+function DriverPickerSheet({
+  drivers,
+  teams,
+  title,
+  value,
+  exclude = [],
+  onClose ,
+  onSelect,
+}: Omit<DriverPickerProps, "open">) {
+  const [query, setQuery] = useState("")
 
   const list = (drivers ?? []).filter((d) => {
     if (exclude.includes(d.id)) return false
