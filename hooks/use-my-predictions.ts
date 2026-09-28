@@ -1,83 +1,68 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Prediction } from "@/lib/api/predictions"
 import { UserLeague } from "@/lib/api/leagues"
 import { fetchMyPrediction } from "@/lib/api/predictions"
 
 type PredictionsByLeague = Record<string, Prediction | null>
 
+type Loaded = { key: string; predictions: PredictionsByLeague; error: string | null }
+
+const NO_PREDICTIONS: PredictionsByLeague = {}
+
+// Mis predicciones de una carrera, una por liga
 export function useMyPredictions(
     leagues: UserLeague[],
     raceId: string | undefined,
     token: string | null | undefined,
 ) {
-    const [predictions, setPredictions] = useState<PredictionsByLeague>({})
-    const [isLoading, setIsloading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const leagueIds = useMemo(() => leagues.map((ul) => ul.league.id).sort(), [leagues])
+    // La carga se identifica por carrera + ligas: recargar la lista de ligas sin cambios
+    // no vuelve a pedir nada (ni pisa lo que el usuario está editando)
+    const key = token && raceId && leagueIds.length > 0 ? `${raceId}|${leagueIds.join(",")}` : null
+
+    const [loaded, setLoaded] = useState<Loaded | null>(null)
 
     useEffect(() => {
-        if (!token || !raceId || leagues.length === 0) {
-            setPredictions({})
-            setIsloading(false)
-            setError(null)
-            return
-        }
+        if (!key || !token || !raceId) return
 
-        const authToken = token
-        const currentRaceId = raceId
-        
         let cancelled = false
+        const requestKey = key
 
-        async function loadPredictions() {
-            try {
-                setIsloading(true)
-                setError(null)
-
-                const results = await Promise.all(
-                    leagues.map(async (userLeague) => {
-                        const leagueId = userLeague.league.id
-
-                        const prediction = await fetchMyPrediction(authToken, leagueId, currentRaceId)
-
-                        return {
-                            leagueId,
-                            prediction
-                        }
-                    })
-                )
-
+        Promise.all(
+            requestKey.split("|")[1].split(",").map(async (leagueId) => ({
+                leagueId,
+                prediction: await fetchMyPrediction(token, leagueId, raceId),
+            })),
+        )
+            .then((results) => {
                 if (cancelled) return
                 const byLeague: PredictionsByLeague = {}
                 for (const result of results) {
                     byLeague[result.leagueId] = result.prediction
                 }
-
-                setPredictions(byLeague)
-            } catch (err) {
+                setLoaded({ key: requestKey, predictions: byLeague, error: null })
+            })
+            .catch((err) => {
                 if (cancelled) return
-                setError(
-                    err instanceof Error
-                    ? err.message
-                    : "No se pudo cargar las predicciones"
-                )
-            } finally {
-                if (!cancelled) {
-                    setIsloading(false)
-                }
-            }
-        }
-
-        loadPredictions()
+                setLoaded({
+                    key: requestKey,
+                    predictions: {},
+                    error: err instanceof Error ? err.message : "No se pudo cargar las predicciones",
+                })
+            })
 
         return () => {
             cancelled = true
         }
-    }, [leagues, raceId, token])
+    }, [key, token, raceId])
+
+    const current = key && loaded?.key === key ? loaded : null
 
     return {
-        predictions,
-        isLoading,
-        error,
+        predictions: current?.predictions ?? NO_PREDICTIONS,
+        isLoading: key !== null && current === null,
+        error: current?.error ?? null,
     }
 }

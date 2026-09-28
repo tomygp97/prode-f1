@@ -68,7 +68,7 @@ export function Predictions() {
     setDnf,
     handleSelect,
     handleTrackedDriverPositionChange,
-  } = usePredictionForm({leagues, predictions})
+  } = usePredictionForm({ raceId: nextGP?.id, leagues, predictions })
 
   // Una predicción guardada antes puede tener pilotos que ya no corren esta fecha (reemplazos):
   // en pantalla se ven vacíos, así que tampoco se mandan (el back los rechazaría)
