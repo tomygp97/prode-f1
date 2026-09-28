@@ -1,12 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { ApiRequestError } from '@/lib/api/client';
+import { isInviteLink, safeNextPath, withNext } from '@/lib/auth/redirect';
 
-export default function RegisterPage() {
+export default function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  // /register?next=/leagues?code=ABC123: después de crear la cuenta se vuelve ahí
+  const next = safeNextPath(use(searchParams).next);
   const router = useRouter();
   const { register } = useAuth();
   const [name, setName] = useState('');
@@ -21,7 +28,7 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     try {
       await register(email, password, name);
-      router.push('/');
+      router.replace(next ?? '/');
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'No se pudo conectar con el servidor');
     } finally {
@@ -34,6 +41,11 @@ export default function RegisterPage() {
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-lg border border-neutral-800 bg-neutral-900 p-6">
         <h1 className="text-xl font-semibold text-white">Crear cuenta</h1>
 
+        {isInviteLink(next) && !error && (
+          <p className="rounded-md bg-neutral-800 px-3 py-2 text-sm text-neutral-300">
+            Te invitaron a una liga: creá tu cuenta y te llevamos directo a unirte.
+          </p>
+        )}
         {error && <p className="rounded-md bg-red-950 px-3 py-2 text-sm text-red-400">{error}</p>}
 
         <div className="space-y-1">
@@ -80,7 +92,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-neutral-400">
           ¿Ya tenés cuenta?{' '}
-          <Link href="/login" className="text-white underline">
+          <Link href={withNext('/login', next)} className="text-white underline">
             Iniciá sesión
           </Link>
         </p>
