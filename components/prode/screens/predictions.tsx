@@ -1,121 +1,48 @@
 "use client"
 
-import { useMemo } from "react"
-import { useAuth } from "@/context/auth-context"
-import {
-  Lock,
-  Trophy,
-  ListOrdered,
-  ShieldAlert,
-  CarFront,
-  Check,
-  Minus,
-  Plus,
-  Users,
-} from "lucide-react"
-import { DriverPicker, DriverSlot } from "@/components/prode/driver-picker"
-import { cn } from "@/lib/utils"
-import { useNextGP } from "@/hooks/use-next-gp"
-import { useDrivers } from "@/hooks/use-drivers"
-import { useTeams } from "@/hooks/use-teams"
-import { useRaceEntries } from "@/hooks/use-race-entries"
+import { useState } from "react"
 import Link from "next/link"
+import { Lock, Users } from "lucide-react"
 import { useLeague } from "@/context/league-context"
-import { TrackedDriverPrediction } from "@/components/prode/screens/tracked-driver-prediction"
-import { buildTrackedDriverItems } from "@/lib/predictions/buildTrackedDriverItems"
-import { useMyPredictions } from "@/hooks/use-my-predictions"
-import { SectionCard } from "../section-card"
-import { usePredictionForm } from "@/hooks/use-prediction-form"
-import { ScoringSummary } from "@/components/prediction/scoring-summary"
-import { useSavePrediction } from "@/hooks/use-save-prediction"
+import { useRaceWeekend } from "@/hooks/use-race-weekend"
+import { useNow } from "@/hooks/use-now"
+import { RaceFromApi, toGrandPrix } from "@/lib/api/races"
+import { getWeekendPhase, WeekendPhase } from "@/lib/races/weekend"
+import { cn } from "@/lib/utils"
+import { PredictionForm } from "@/components/prediction/prediction-form"
 
-export function Predictions() {
-  const { nextGP, isLoading: nextGPLoading, error: nextGPError } = useNextGP()
-  const { token } = useAuth()
+const lockedNotice: Record<WeekendPhase, string> = {
+  qualifying: "Se está corriendo la clasificación: tu predicción ya no se puede cambiar.",
+  "waiting-race": "La clasificación terminó: tu predicción quedó cerrada hasta la carrera.",
+  race: "La carrera está en curso: mirá cómo va tu predicción.",
+  "results-pending": "La carrera terminó: estamos calculando los resultados y tus puntos.",
+}
 
+type Tab = "current" | "next"
+
+/**
+ * Durante un fin de semana en curso hay dos pestañas: la carrera en curso (solo lectura) y la
+ * próxima (editable). Fuera del fin de semana, solo el formulario del próximo GP.
+ */
+export function Predictions({ initialTab }: { initialTab?: Tab }) {
   const { leagues, isLoading: leaguesLoading, error: leaguesError } = useLeague()
-  // Selector: solo la grilla del GP que se predice (el back rechaza pilotos fuera de ella)
-  const { drivers, teams, isLoading: gridLoading, error: gridError } = useRaceEntries(nextGP?.id)
-  // Plantel completo: para el piloto seguido de cada liga, aunque no corra este GP
-  const { drivers: rosterDrivers, isLoading: driversLoading, error: driversError } = useDrivers()
-  const { teams: rosterTeams, isLoading: teamsLoading, error: teamsError } = useTeams()
-  const { predictions, isLoading: predictionsLoading, error: predictionsError } = useMyPredictions(leagues, nextGP?.id, token)
+  const { current, next, isLoading: racesLoading, error: racesError } = useRaceWeekend()
+  const now = useNow()
+  const [selectedTab, setSelectedTab] = useState<Tab | null>(initialTab ?? null)
 
-  const isLoading =
-    nextGPLoading || gridLoading || driversLoading || teamsLoading || leaguesLoading || predictionsLoading
-  const fetchError = nextGPError ?? gridError ?? driversError ?? teamsError ?? leaguesError ?? predictionsError
-
-  // El piloto seguido se busca primero en la grilla (equipo de esta carrera) y si no, en el plantel
-  const trackedLookup = useMemo(() => {
-    const gridIds = new Set(drivers.map((driver) => driver.id))
-    const gridTeamIds = new Set(teams.map((team) => team.id))
-    return {
-      drivers: [...drivers, ...rosterDrivers.filter((driver) => !gridIds.has(driver.id))],
-      teams: [...teams, ...rosterTeams.filter((team) => !gridTeamIds.has(team.id))],
-    }
-  }, [drivers, teams, rosterDrivers, rosterTeams])
-
-  const {
-    pole,
-    predictedOrder,
-    safetyCar,
-    dnf,
-    picker,
-    setPicker,
-    manualTrackedDriverPositions,
-    maxPredictionSlots,
-    setSafetyCar,
-    setDnf,
-    handleSelect,
-    handleTrackedDriverPositionChange,
-  } = usePredictionForm({ raceId: nextGP?.id, leagues, predictions })
-
-  // Una predicción guardada antes puede tener pilotos que ya no corren esta fecha (reemplazos):
-  // en pantalla se ven vacíos, así que tampoco se mandan (el back los rechazaría)
-  const { gridOrder, gridPole } = useMemo(() => {
-    const gridIds = new Set(drivers.map((driver) => driver.id))
-    const onGrid = (driverId: string | undefined) => (driverId && gridIds.has(driverId) ? driverId : undefined)
-    return { gridOrder: predictedOrder.map(onGrid), gridPole: onGrid(pole) }
-  }, [drivers, predictedOrder, pole])
-
-  const trackedDriverItems = useMemo(() =>
-    buildTrackedDriverItems({
-      leagues,
-      drivers: trackedLookup.drivers,
-      teams: trackedLookup.teams,
-      predictedOrder: gridOrder,
-      manualPositions: manualTrackedDriverPositions,
-    }),
-    [
-      leagues,
-      trackedLookup,
-      gridOrder,
-      manualTrackedDriverPositions,
-    ],
-  )
-
-  const { savePrediction, isSaving, saved, error: saveError } = useSavePrediction({
-  token,
-  raceId: nextGP?.id,
-    leagues,
-    predictedOrder: gridOrder,
-    pole: gridPole,
-    safetyCar,
-    dnf,
-    trackedDriverItems
-  })
-
-  if (isLoading) {
+  if (leaguesLoading || racesLoading) {
     return <div className="px-4 py-5 text-muted-foreground">Cargando...</div>
   }
+  const fetchError = leaguesError ?? racesError
   if (fetchError) return <div className="px-4 py-5 text-primary">{fetchError}</div>
 
-  if (!nextGP) {
+  if (!current && !next) {
     return <div className="px-4 py-5 text-muted-foreground">No hay próximo GP</div>
   }
 
   // Sin ligas no hay dónde guardar la predicción (se guarda por liga)
   if (leagues.length === 0) {
+    const gp = toGrandPrix((next ?? current) as RaceFromApi)
     return (
       <div className="px-4 py-5">
         <section className="rounded-2xl border border-border bg-card p-5 text-center">
@@ -124,7 +51,7 @@ export function Predictions() {
           </span>
           <p className="mt-2 font-heading text-base font-bold uppercase">Todavía no estás en una liga</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Para predecir {nextGP.flag} {nextGP.name} creá una liga o unite con el código de un amigo.
+            Para predecir {gp.flag} {gp.name} creá una liga o unite con el código de un amigo.
           </p>
           <Link
             href="/leagues"
@@ -137,202 +64,44 @@ export function Predictions() {
     )
   }
 
-  function pickerProps() {
-    if (!picker) {
-      return {
-        title: "",
-        value: undefined,
-        exclude: [] as string[],
-      }
-    }
-  
-    if (picker.kind === "pole") {
-      return {
-        title: "Elegí la Pole",
-        value: pole,
-        exclude: [],
-      }
-    }
-  
-    if (picker.kind === "predictedOrder") {
-      const exclude = predictedOrder.filter(
-        (driverId, index) =>
-          driverId && index !== picker.index,
-      ) as string[]
-  
-      return {
-        title: `Elegí P${picker.index + 1}`,
-        value: predictedOrder[picker.index],
-        exclude,
-      }
-    }
-  
-    return {
-      title: "",
-      value: undefined,
-      exclude: [],
-    }
-  }
-
-  const pp = pickerProps()
+  // Pestaña activa: la elegida si existe; si no, la carrera en curso (lo que importa ese fin de semana)
+  const tab: Tab =
+    selectedTab === "next" && next ? "next" : selectedTab === "current" && current ? "current" : current ? "current" : "next"
+  const race = (tab === "current" ? current : next) as RaceFromApi
 
   return (
     <div className="space-y-5 px-4 py-5">
-      <div>
-        <h1 className="font-heading text-2xl font-bold uppercase leading-tight">
-          Predicciones {nextGP.flag} {nextGP.name}
-        </h1>
-        <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Lock className="size-3.5" />
-          Las predicciones se bloquean al comenzar la clasificación.
-        </p>
-      </div>
-
-      {/* Pole */}
-      <SectionCard icon={Trophy} title="Pole Position" subtitle="¿Quién larga primero el domingo?">
-        <DriverSlot
-          drivers={drivers}
-          teams={teams}
-          driverId={pole}
-          placeholder="Seleccionar piloto"
-          onClick={() => setPicker({ kind: "pole" })}
-        />
-      </SectionCard>
-
-      {/* Orden de Carrera */}
-      <SectionCard icon={ListOrdered} title="Orden de Carrera" subtitle="No se pueden repetir pilotos.">
-        <div className="space-y-2">
-          {Array.from({ length: maxPredictionSlots }).map((_, i) => (
-            <DriverSlot 
-              key={i}
-              drivers={drivers}
-              teams={teams}
-              position={`P${i+1}`}
-              driverId={predictedOrder[i]}
-              placeholder={`Seleccionar P${i+1}`}
-              onClick={() => setPicker({
-                kind: "predictedOrder",
-                index: i,
-              })}
-            />
-          ))}
+      {current && next && (
+        <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-card p-1">
+          {([
+            { id: "current" as const, race: current, locked: true },
+            { id: "next" as const, race: next, locked: false },
+          ]).map((t) => {
+            const gp = toGrandPrix(t.race)
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setSelectedTab(t.id)}
+                className={cn(
+                  "flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 font-heading text-sm font-bold uppercase transition-colors",
+                  tab === t.id ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                )}
+              >
+                {t.locked && <Lock className="size-3.5 shrink-0" />}
+                <span className="truncate">{gp.flag} {gp.name.replace(" Grand Prix", "")}</span>
+              </button>
+            )
+          })}
         </div>
-      </SectionCard>
-
-      {/* Safety Car */}
-      <SectionCard icon={ShieldAlert} title="Safety Car" subtitle="¿Habrá Safety Car durante la carrera?">
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: "Sí", val: true },
-            { label: "No", val: false },
-          ].map((o) => (
-            <button
-              key={o.label}
-              type="button"
-              onClick={() => setSafetyCar(o.val)}
-              className={cn(
-                "rounded-xl border py-3 font-heading text-lg font-bold uppercase transition-colors",
-                safetyCar === o.val
-                  ? "border-primary bg-primary/15 text-primary"
-                  : "border-border bg-background text-muted-foreground hover:bg-secondary",
-              )}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      </SectionCard>
-
-      {/* DNF */}
-      <SectionCard icon={CarFront} title="DNF" subtitle="¿Cuántos pilotos abandonarán la carrera?">
-        <div className="flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={() => setDnf((v) => Math.max(0, v - 1))}
-            className="flex size-11 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
-            disabled={dnf === 0}
-            aria-label="Restar"
-          >
-            <Minus className="size-5" />
-          </button>
-          <div className="flex flex-col items-center">
-            <span className="font-heading text-4xl font-bold tabular-nums">{dnf}</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              abandonos
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setDnf((v) => Math.min(10, v + 1))}
-            className="flex size-11 items-center justify-center rounded-xl border border-border bg-background text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
-            disabled={dnf === 10}
-            aria-label="Sumar"
-          >
-            <Plus className="size-5" />
-          </button>
-        </div>
-        <div className="mt-3 flex gap-1">
-          {Array.from({ length: 11 }).map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setDnf(i)}
-              aria-label={`${i} abandonos`}
-              className={cn(
-                "h-1.5 flex-1 rounded-full transition-colors",
-                i <= dnf ? "bg-primary" : "bg-secondary",
-              )}
-            />
-          ))}
-        </div>
-      </SectionCard>
-
-      {/* Tracked Driver */}
-      {trackedDriverItems.length > 0 && (
-        <TrackedDriverPrediction
-          items={trackedDriverItems}
-          onPositionChange={handleTrackedDriverPositionChange}
-        />
       )}
 
-      {/* Scoring summary */}
-      <ScoringSummary
-        trackedDriverAcronyms={trackedDriverItems.map((item) => item.driver.acronym)}
-        maxPredictionSlots={maxPredictionSlots}
-      />
-
-      <button
-        type="button"
-        onClick={savePrediction}
-        disabled={isSaving}
-        className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-heading text-base font-bold uppercase tracking-wide transition-all active:scale-[0.98]",
-          saved ? "bg-arg text-arg-foreground" : "bg-primary text-primary-foreground",
-        )}
-      >
-        {saved ? (
-          <>
-            <Check className="size-5" /> Predicción Guardada
-          </>
-        ) : (
-          "Guardar Predicción"
-        )}
-      </button>
-      {saveError && (
-        <p className="-mt-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2.5 text-center text-sm text-primary">
-          {saveError}
-        </p>
-      )}
-
-      <DriverPicker
-        drivers={drivers}
-        teams={teams}
-        open={picker !== null}
-        title={pp.title}
-        value={pp.value}
-        exclude={pp.exclude}
-        onClose={() => setPicker(null)}
-        onSelect={handleSelect}
+      {/* key: cada carrera arranca con su propio formulario */}
+      <PredictionForm
+        key={race.id}
+        race={race}
+        readOnly={tab === "current"}
+        notice={tab === "current" ? lockedNotice[getWeekendPhase(race, now)] : undefined}
       />
     </div>
   )
