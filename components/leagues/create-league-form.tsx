@@ -16,10 +16,16 @@ const COLAPINTO_NUMBER = 43
 export function CreateLeagueForm({
   drivers,
   teams,
+  gridDrivers,
+  gridTeams,
   onCreated,
 }: {
+  /** Plantel de la temporada: para encontrar a Colapinto aunque no corra el próximo GP. */
   drivers: Driver[]
   teams: Team[]
+  /** Grilla del próximo GP: es lo que ofrece el selector de piloto. */
+  gridDrivers: Driver[]
+  gridTeams: Team[]
   onCreated: (league: League) => void
 }) {
   const { token } = useAuth()
@@ -40,6 +46,12 @@ export function CreateLeagueForm({
   }, [])
 
   const colapinto = drivers.find((driver) => driver.driverNumber === COLAPINTO_NUMBER)
+  // El selector ofrece la grilla del próximo GP (si todavía no hay, el plantel)
+  const pickerDrivers = gridDrivers.length > 0 ? gridDrivers : drivers
+  const pickerTeams = gridDrivers.length > 0 ? gridTeams : teams
+  // Para mostrar el elegido sirve cualquiera de las dos listas (grilla primero: equipo actual)
+  const slotDrivers = [...pickerDrivers, ...drivers.filter((d) => !pickerDrivers.some((p) => p.id === d.id))]
+  const slotTeams = [...pickerTeams, ...teams.filter((t) => !pickerTeams.some((p) => p.id === t.id))]
   // Con la casilla tildada el piloto seguido es Colapinto y no se puede elegir otro
   const selectedTrackedId = followColapinto ? colapinto?.id : trackedDriverId
 
@@ -122,8 +134,8 @@ export function CreateLeagueForm({
         <div className="flex items-center gap-2">
           <div className="flex-1">
             <DriverSlot
-              drivers={drivers}
-              teams={teams}
+              drivers={slotDrivers}
+              teams={slotTeams}
               driverId={selectedTrackedId}
               placeholder="Elegir otro piloto"
               disabled={followColapinto}
@@ -163,8 +175,8 @@ export function CreateLeagueForm({
       )}
 
       <DriverPicker
-        drivers={drivers}
-        teams={teams}
+        drivers={pickerDrivers}
+        teams={pickerTeams}
         open={pickerOpen}
         title="Piloto a seguir"
         value={trackedDriverId}

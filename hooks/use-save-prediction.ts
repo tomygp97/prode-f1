@@ -29,6 +29,7 @@ export function useSavePrediction({
 }: UseSavePredictionParams) {
     const [isSaving, setIsSaving] = useState(false)
     const [saved, setSaved] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     async function savePrediction() {
         if (!token || !raceId) return
@@ -36,6 +37,7 @@ export function useSavePrediction({
         try {
             setIsSaving(true)
             setSaved(false)
+            setError(null)
 
             const requests = leagues.map((userLeague) => {
                 const league = userLeague.league
@@ -50,7 +52,7 @@ export function useSavePrediction({
                 })
 
                 if (!body) {
-                    throw new Error(`La predicción para la liga "${league.name}" esta incompleta`)
+                    throw new Error(`Completá la predicción: faltan datos para "${league.name}" (pole, posiciones, Safety Car o piloto seguido).`)
                 }
 
                 return submitPrediction(token, league.id, raceId, body)
@@ -60,11 +62,23 @@ export function useSavePrediction({
 
             setSaved(true)
         } catch (err) {
-            console.error(err)
+            setError(savePredictionErrorMessage(err))
         } finally {
             setIsSaving(false)
         }
     }
 
-    return {savePrediction, isSaving, saved}
+    return {savePrediction, isSaving, saved, error}
+}
+
+// Mensajes del back → castellano (el resto se muestra tal cual)
+function savePredictionErrorMessage(err: unknown): string {
+    if (!(err instanceof Error)) return "No se pudo guardar la predicción"
+    if (err.message === "Predictions are closed for this race") {
+        return "Las predicciones de esta fecha ya cerraron (empezó la clasificación)."
+    }
+    if (/are not on the grid for this race/.test(err.message)) {
+        return "Elegiste un piloto que no corre esta fecha. Revisá tu predicción."
+    }
+    return err.message
 }

@@ -11,12 +11,15 @@ import {
   Check,
   Minus,
   Plus,
+  Users,
 } from "lucide-react"
 import { DriverPicker, DriverSlot } from "@/components/prode/driver-picker"
 import { cn } from "@/lib/utils"
 import { useNextGP } from "@/hooks/use-next-gp"
 import { useDrivers } from "@/hooks/use-drivers"
 import { useTeams } from "@/hooks/use-teams"
+import { useRaceEntries } from "@/hooks/use-race-entries"
+import Link from "next/link"
 import { useLeague } from "@/context/league-context"
 import { TrackedDriverPrediction } from "@/components/prode/screens/tracked-driver-prediction"
 import { buildTrackedDriverItems } from "@/lib/predictions/buildTrackedDriverItems"
@@ -27,16 +30,30 @@ import { ScoringSummary } from "@/components/prediction/scoring-summary"
 import { useSavePrediction } from "@/hooks/use-save-prediction"
 
 export function Predictions() {
-  const { nextGP } = useNextGP()
+  const { nextGP, isLoading: nextGPLoading, error: nextGPError } = useNextGP()
   const { token } = useAuth()
 
   const { leagues, isLoading: leaguesLoading, error: leaguesError } = useLeague()
-  const { drivers, isLoading: driversLoading, error: driversError } = useDrivers()
-  const { teams, isLoading: teamsLoading, error: teamsError } = useTeams()
+  // Selector: solo la grilla del GP que se predice (el back rechaza pilotos fuera de ella)
+  const { drivers, teams, isLoading: gridLoading, error: gridError } = useRaceEntries(nextGP?.id)
+  // Plantel completo: para el piloto seguido de cada liga, aunque no corra este GP
+  const { drivers: rosterDrivers, isLoading: driversLoading, error: driversError } = useDrivers()
+  const { teams: rosterTeams, isLoading: teamsLoading, error: teamsError } = useTeams()
   const { predictions, isLoading: predictionsLoading, error: predictionsError } = useMyPredictions(leagues, nextGP?.id, token)
 
-  const isLoading = driversLoading || teamsLoading || leaguesLoading || predictionsLoading
-  const fetchError = driversError ?? teamsError ?? leaguesError ?? predictionsError
+  const isLoading =
+    nextGPLoading || gridLoading || driversLoading || teamsLoading || leaguesLoading || predictionsLoading
+  const fetchError = nextGPError ?? gridError ?? driversError ?? teamsError ?? leaguesError ?? predictionsError
+
+  // El piloto seguido se busca primero en la grilla (equipo de esta carrera) y si no, en el plantel
+  const trackedLookup = useMemo(() => {
+    const gridIds = new Set(drivers.map((driver) => driver.id))
+    const gridTeamIds = new Set(teams.map((team) => team.id))
+    return {
+      drivers: [...drivers, ...rosterDrivers.filter((driver) => !gridIds.has(driver.id))],
+      teams: [...teams, ...rosterTeams.filter((team) => !gridTeamIds.has(team.id))],
+    }
+  }, [drivers, teams, rosterDrivers, rosterTeams])
 
   const {
     pole,
@@ -52,30 +69,37 @@ export function Predictions() {
     handleSelect,
     handleTrackedDriverPositionChange,
   } = usePredictionForm({leagues, predictions})
-  
+
+  // Una predicción guardada antes puede tener pilotos que ya no corren esta fecha (reemplazos):
+  // en pantalla se ven vacíos, así que tampoco se mandan (el back los rechazaría)
+  const { gridOrder, gridPole } = useMemo(() => {
+    const gridIds = new Set(drivers.map((driver) => driver.id))
+    const onGrid = (driverId: string | undefined) => (driverId && gridIds.has(driverId) ? driverId : undefined)
+    return { gridOrder: predictedOrder.map(onGrid), gridPole: onGrid(pole) }
+  }, [drivers, predictedOrder, pole])
+
   const trackedDriverItems = useMemo(() =>
     buildTrackedDriverItems({
       leagues,
-      drivers,
-      teams,
-      predictedOrder,
+      drivers: trackedLookup.drivers,
+      teams: trackedLookup.teams,
+      predictedOrder: gridOrder,
       manualPositions: manualTrackedDriverPositions,
     }),
     [
       leagues,
-      drivers,
-      teams,
-      predictedOrder,
+      trackedLookup,
+      gridOrder,
       manualTrackedDriverPositions,
     ],
   )
 
-  const { savePrediction, isSaving, saved } = useSavePrediction({
+  const { savePrediction, isSaving, saved, error: saveError } = useSavePrediction({
   token,
   raceId: nextGP?.id,
     leagues,
-    predictedOrder,
-    pole,
+    predictedOrder: gridOrder,
+    pole: gridPole,
     safetyCar,
     dnf,
     trackedDriverItems
@@ -84,10 +108,33 @@ export function Predictions() {
   if (isLoading) {
     return <div className="px-4 py-5 text-muted-foreground">Cargando...</div>
   }
-  if (fetchError) return <div>{fetchError}</div>
-  
+  if (fetchError) return <div className="px-4 py-5 text-primary">{fetchError}</div>
+
   if (!nextGP) {
     return <div className="px-4 py-5 text-muted-foreground">No hay próximo GP</div>
+  }
+
+  // Sin ligas no hay dónde guardar la predicción (se guarda por liga)
+  if (leagues.length === 0) {
+    return (
+      <div className="px-4 py-5">
+        <section className="rounded-2xl border border-border bg-card p-5 text-center">
+          <span className="mx-auto flex size-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <Users className="size-5" />
+          </span>
+          <p className="mt-2 font-heading text-base font-bold uppercase">Todavía no estás en una liga</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Para predecir {nextGP.flag} {nextGP.name} creá una liga o unite con el código de un amigo.
+          </p>
+          <Link
+            href="/leagues"
+            className="mt-4 inline-block rounded-xl bg-primary px-4 py-2.5 font-heading text-sm font-bold uppercase text-primary-foreground"
+          >
+            Ir a Ligas
+          </Link>
+        </section>
+      </div>
+    )
   }
 
   function pickerProps() {
@@ -249,7 +296,10 @@ export function Predictions() {
       )}
 
       {/* Scoring summary */}
-      <ScoringSummary />
+      <ScoringSummary
+        trackedDriverAcronyms={trackedDriverItems.map((item) => item.driver.acronym)}
+        maxPredictionSlots={maxPredictionSlots}
+      />
 
       <button
         type="button"
@@ -268,6 +318,11 @@ export function Predictions() {
           "Guardar Predicción"
         )}
       </button>
+      {saveError && (
+        <p className="-mt-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2.5 text-center text-sm text-primary">
+          {saveError}
+        </p>
+      )}
 
       <DriverPicker
         drivers={drivers}

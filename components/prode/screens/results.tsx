@@ -48,6 +48,16 @@ export function Results() {
     })
   }, [league, prediction, results])
 
+  // Cada piloto con el equipo con el que corrió ESTA carrera (no el actual): un cambio
+  // de equipo posterior no altera los resultados viejos
+  const raceDrivers = useMemo(() => {
+    const teamByDriverId = new Map((results?.drivers ?? []).map((r) => [r.driverId, r.teamId]))
+    return drivers.map((driver) => {
+      const raceTeamId = teamByDriverId.get(driver.id)
+      return raceTeamId ? { ...driver, teamId: raceTeamId } : driver
+    })
+  }, [drivers, results])
+
   if (isLoading) {
     return <div className="px-4 py-5 text-muted-foreground">Cargando...</div>
   }
@@ -84,7 +94,7 @@ export function Results() {
 
       <ComparisonCard
         comparison={comparison}
-        drivers={drivers}
+        drivers={raceDrivers}
         teams={teams}
         showPrediction={prediction !== null}
       />
