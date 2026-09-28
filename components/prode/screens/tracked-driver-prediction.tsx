@@ -8,9 +8,11 @@ import { DriverAvatar } from "../driver-avatar";
 interface TrackedDriverPredictionProps {
     items: TrackedDriverItem[]
     onPositionChange: (leagueId: string, position: number) => void
+    /** Solo lectura (predicciones cerradas) */
+    disabled?: boolean
   }
 
-export const TrackedDriverPrediction = ({ items, onPositionChange }: TrackedDriverPredictionProps) => {
+export const TrackedDriverPrediction = ({ items, onPositionChange, disabled = false }: TrackedDriverPredictionProps) => {
     return (
         <section className="space-y-3">
           {items.map((item) => (
@@ -68,11 +70,12 @@ export const TrackedDriverPrediction = ({ items, onPositionChange }: TrackedDriv
                         <button
                           key={position}
                           type="button"
+                          disabled={disabled}
                           onClick={() =>
                             onPositionChange(item.driver.id, position)
                           }
                           className={cn(
-                            "flex size-10 shrink-0 items-center justify-center rounded-lg border font-heading text-sm font-bold transition-colors",
+                            "flex size-10 shrink-0 items-center justify-center rounded-lg border font-heading text-sm font-bold transition-colors disabled:cursor-not-allowed",
                             item.position === position
                               ? "border-primary bg-primary text-primary-foreground"
                               : "border-border bg-background text-muted-foreground hover:bg-secondary",
