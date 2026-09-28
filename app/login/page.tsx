@@ -4,6 +4,7 @@ import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { ApiRequestError } from '@/lib/api/client';
+import { isInviteLink, safeNextPath, withNext } from '@/lib/auth/redirect';
 import Link from 'next/link';
 
 export default function LoginPage({
@@ -11,8 +12,11 @@ export default function LoginPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const params = use(searchParams);
   // /login?expired=1: la sesión venció (lo manda AuthProvider)
-  const sessionExpired = use(searchParams).expired === '1';
+  const sessionExpired = params.expired === '1';
+  // /login?next=/leagues?code=ABC123: después de ingresar se vuelve ahí (ej. link de invitación)
+  const next = safeNextPath(params.next);
   const router = useRouter();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -26,7 +30,7 @@ export default function LoginPage({
     setIsSubmitting(true);
     try {
       await login(email, password);
-      router.push('/'); 
+      router.replace(next ?? '/');
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'No se pudo conectar con el servidor');
     } finally {
@@ -39,6 +43,11 @@ export default function LoginPage({
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-lg border border-neutral-800 bg-neutral-900 p-6">
         <h1 className="text-xl font-semibold text-white">Iniciar sesión</h1>
 
+        {isInviteLink(next) && !error && (
+          <p className="rounded-md bg-neutral-800 px-3 py-2 text-sm text-neutral-300">
+            Te invitaron a una liga. Ingresá (o creá tu cuenta) y te llevamos directo a unirte.
+          </p>
+        )}
         {sessionExpired && !error && (
           <p className="rounded-md bg-neutral-800 px-3 py-2 text-sm text-neutral-300">Tu sesión expiró. Volvé a ingresar.</p>
         )}
@@ -76,7 +85,7 @@ export default function LoginPage({
 
         <p className="text-center text-sm text-neutral-400">
           ¿No tenés cuenta?{' '}
-          <Link href="/register" className="text-white underline">
+          <Link href={withNext('/register', next)} className="text-white underline">
             Registrate
           </Link>
         </p>

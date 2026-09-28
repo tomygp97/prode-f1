@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/prode/bottom-nav"
 import { AppHeader } from "@/components/prode/app-header"
 import { LeagueProvider } from "@/context/league-context"
 import { useAuth } from "@/context/auth-context"
+import { withNext } from "@/lib/auth/redirect"
 
 export default function MainLayout({
   children,
@@ -17,7 +18,9 @@ export default function MainLayout({
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push("/login")
+      // Se guarda a dónde quería ir (ej. un link de invitación) para volver después del login
+      const next = window.location.pathname + window.location.search
+      router.replace(withNext("/login", next === "/home" ? null : next))
     }
   }, [isLoading, user, router])
 
