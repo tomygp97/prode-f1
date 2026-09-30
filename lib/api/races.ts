@@ -1,9 +1,5 @@
 import { GrandPrix } from "../f1-data"
-
-const apiurl = process.env.NEXT_PUBLIC_API_URL;
-if (!apiurl) {
-    throw new Error("NEXT_PUBLIC_API_URL no está definida")
-    }
+import { api } from "./client"
 
 export const RaceStatus = {
     SCHEDULED: 'scheduled',
@@ -22,21 +18,74 @@ export type RaceFromApi = {
     circuit: string
     country: string
     round: number
-    qualifyingStartAt: string
-    raceStartAt: string
+    qualifyingStartAt: string | null
+    raceStartAt: string | null
     status: RaceStatus
     meetingKey: number
-    raceSessionKey: number
-    qualifyingSessionKey: number
+    raceSessionKey: number | null
+    qualifyingSessionKey: number | null
     scoresCalculatedAt: string | null
 }
 
+export type RaceResultFromApi = {
+    id: string
+    raceId: string
+    poleDriverId: string
+    raceWinnerDriverId: string
+    raceWinnerTeamId: string
+    safetyCar: boolean
+    dnfCount: number
+    syncedAt: string
+}
+
+export type RaceDriverResultFromApi = {
+    id: string
+    raceId: string
+    driverId: string
+    teamId: string // equipo con el que corrió ESA carrera
+    position: number | null
+    dnf: boolean
+}
+
+// Piloto de la grilla de una carrera (GET /races/:id/entries)
+export type RaceGridEntryFromApi = {
+    driverId: string
+    driverNumber: number
+    name: string
+    acronym: string
+    team: { id: string; name: string; colour: string }
+}
+
+export type RaceResultsFromApi = {
+    race: RaceFromApi
+    result: RaceResultFromApi | null
+    drivers: RaceDriverResultFromApi[]
+}
+
+// Nombres de país tal como vienen de OpenF1
 const countryFlags: Record<string, string> = {
-    Netherlands: "🇳🇱",
-    Italy: "🇮🇹",
     Argentina: "🇦🇷",
+    Australia: "🇦🇺",
+    Austria: "🇦🇹",
+    Azerbaijan: "🇦🇿",
+    Bahrain: "🇧🇭",
+    Belgium: "🇧🇪",
+    Brazil: "🇧🇷",
+    Canada: "🇨🇦",
+    China: "🇨🇳",
+    Hungary: "🇭🇺",
+    Italy: "🇮🇹",
+    Japan: "🇯🇵",
+    Mexico: "🇲🇽",
     Monaco: "🇲🇨",
+    Netherlands: "🇳🇱",
+    Qatar: "🇶🇦",
+    "Saudi Arabia": "🇸🇦",
+    Singapore: "🇸🇬",
     Spain: "🇪🇸",
+    "United Arab Emirates": "🇦🇪",
+    "United Kingdom": "🇬🇧",
+    "United States": "🇺🇸",
 }
 
 function mapPredictionStatus(status: RaceStatus): GrandPrix["status"] {
@@ -54,21 +103,39 @@ export function toGrandPrix(race: RaceFromApi): GrandPrix {
         round: race.round,
         name: race.name,
         circuit: race.circuit,
-        city: race.circuit, // hasta que Nest devuelva city
         country: race.country,
         flag: countryFlags[race.country] ?? "🏁",
-        date: race.raceStartAt,
+        qualifyingDate: race.qualifyingStartAt ?? "",
+        date: race.raceStartAt ?? "",
         status: mapPredictionStatus(race.status),
     }
 }
 
-export async function fetchNextGP(): Promise<GrandPrix> {
-    const res = await fetch(`${apiurl}/races/next`, {
-        cache: "no-store",
-    })
-    if (!res.ok) {
-        throw new Error(`GET /races/next → ${res.status}`)
-    }
-    const data: RaceFromApi = await res.json()
-    return toGrandPrix(data)
+// El back responde con body vacío (→ null) cuando no hay próxima carrera
+export async function fetchNextGP(): Promise<GrandPrix | null> {
+    const race = await api.get<RaceFromApi | null>("/races/next")
+    return race ? toGrandPrix(race) : null
+}
+
+// Fin de semana en curso: ya empezó la qualy y todavía no hay resultados (null si no hay)
+export function fetchCurrentRace(): Promise<RaceFromApi | null> {
+    return api.get<RaceFromApi | null>("/races/current")
+}
+
+// Próxima carrera con predicciones abiertas (la qualy todavía no empezó)
+export function fetchNextRace(): Promise<RaceFromApi | null> {
+    return api.get<RaceFromApi | null>("/races/next")
+}
+
+export function fetchLastResultsSyncedRace(): Promise<RaceFromApi | null> {
+    return api.get<RaceFromApi | null>("/races/last-results-synced")
+}
+
+export function fetchRaceResults(raceId: string): Promise<RaceResultsFromApi> {
+    return api.get<RaceResultsFromApi>(`/races/${raceId}/results`)
+}
+
+// Grilla de la carrera; si todavía no tiene (antes de la FP1), el back devuelve la última conocida
+export function fetchRaceEntries(raceId: string): Promise<RaceGridEntryFromApi[]> {
+    return api.get<RaceGridEntryFromApi[]>(`/races/${raceId}/entries`)
 }

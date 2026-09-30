@@ -1,84 +1,71 @@
 "use client"
 
 import { useState } from "react"
-import {
-  ArrowLeft,
-  Users,
-  Plus,
-  LogIn,
-  Copy,
-  Check,
-  Share2,
-  Crown,
-} from "lucide-react"
-import { useNav } from "@/components/prode/nav-context"
-import { league } from "@/lib/f1-data"
+import { ArrowLeft, Check, List, LogIn, Plus } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useLeague } from "@/context/league-context"
+import { useDrivers } from "@/hooks/use-drivers"
+import { useTeams } from "@/hooks/use-teams"
+import { useNextGP } from "@/hooks/use-next-gp"
+import { useRaceEntries } from "@/hooks/use-race-entries"
+import { League } from "@/lib/api/leagues"
 import { cn } from "@/lib/utils"
+import { MyLeagues } from "@/components/leagues/my-leagues"
+import { CreateLeagueForm } from "@/components/leagues/create-league-form"
+import { JoinLeagueForm } from "@/components/leagues/join-league-form"
+import { InviteShare } from "@/components/leagues/invite-share"
 
-export function Leagues() {
-  const { navigate } = useNav()
-  const [tab, setTab] = useState<"crear" | "unirse">("crear")
-  const [leagueName, setLeagueName] = useState("")
-  const [season, setSeason] = useState("2026")
-  const [joinCode, setJoinCode] = useState("")
-  const [created, setCreated] = useState(false)
-  const [copied, setCopied] = useState(false)
+type Tab = "mis" | "crear" | "unirse"
 
-  const shareLink = `prodef1.app/j/${league.inviteCode}`
+const tabs = [
+  { id: "mis" as const, label: "Mis Ligas", icon: List },
+  { id: "crear" as const, label: "Crear", icon: Plus },
+  { id: "unirse" as const, label: "Unirse", icon: LogIn },
+]
 
-  function copy(text: string) {
-    navigator.clipboard?.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+export function Leagues({ initialCode }: { initialCode?: string }) {
+  const router = useRouter()
+  const { leagues, isLoading: leaguesLoading, reload } = useLeague()
+  const { drivers } = useDrivers()
+  const { teams } = useTeams()
+  // El selector de piloto a seguir ofrece la grilla del próximo GP
+  const { nextGP } = useNextGP()
+  const { drivers: gridDrivers, teams: gridTeams } = useRaceEntries(nextGP?.id)
+
+  // Con ?code= (link de invitación) se abre directo en Unirse
+  const [selectedTab, setSelectedTab] = useState<Tab | null>(initialCode ? "unirse" : null)
+  const [createdLeague, setCreatedLeague] = useState<League | null>(null)
+  const [joinedNotice, setJoinedNotice] = useState(false)
+
+  // Sin pestaña elegida: Mis Ligas, o Crear si todavía no tiene ninguna
+  const tab: Tab = selectedTab ?? (leaguesLoading || leagues.length > 0 ? "mis" : "crear")
+
+  function selectTab(next: Tab) {
+    setSelectedTab(next)
+    setCreatedLeague(null)
+    setJoinedNotice(false)
   }
 
   return (
     <div className="space-y-5 px-4 py-5">
       <button
         type="button"
-        onClick={() => navigate("inicio")}
+        onClick={() => router.push("/home")}
         className="flex items-center gap-1 text-sm text-muted-foreground"
       >
         <ArrowLeft className="size-4" /> Volver
       </button>
 
-      <h1 className="font-heading text-2xl font-bold uppercase leading-tight">Ligas Privadas</h1>
+      <h1 className="font-heading text-2xl font-bold uppercase leading-tight">Ligas</h1>
 
-      {/* Current league */}
-      <section className="rounded-2xl border border-border bg-card p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              <Crown className="size-5" />
-            </span>
-            <div>
-              <p className="font-heading text-base font-bold">{league.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {league.members.length} jugadores · Temporada {league.season}
-              </p>
-            </div>
-          </div>
-          <span className="rounded-full bg-arg/15 px-2 py-1 text-[10px] font-semibold text-arg">
-            Activa
-          </span>
-        </div>
-      </section>
-
-      {/* Tabs */}
-      <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-card p-1">
-        {[
-          { id: "crear" as const, label: "Crear Liga", icon: Plus },
-          { id: "unirse" as const, label: "Unirse", icon: LogIn },
-        ].map((t) => {
+      <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-card p-1">
+        {tabs.map((t) => {
           const Icon = t.icon
           return (
             <button
               key={t.id}
               type="button"
-              onClick={() => {
-                setTab(t.id)
-                setCreated(false)
-              }}
+              onClick={() => selectTab(t.id)}
               className={cn(
                 "flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-heading text-sm font-bold uppercase transition-colors",
                 tab === t.id ? "bg-primary text-primary-foreground" : "text-muted-foreground",
@@ -90,126 +77,55 @@ export function Leagues() {
         })}
       </div>
 
-      {tab === "crear" && !created && (
-        <section className="space-y-4 rounded-2xl border border-border bg-card p-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Nombre de la Liga</label>
-            <input
-              value={leagueName}
-              onChange={(e) => setLeagueName(e.target.value)}
-              placeholder="Ej: Los Cracks de la F1"
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary placeholder:text-muted-foreground"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Temporada</label>
-            <div className="grid grid-cols-2 gap-2">
-              {["2026", "2027"].map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSeason(s)}
-                  className={cn(
-                    "rounded-xl border py-2.5 font-heading font-bold transition-colors",
-                    season === s
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-background text-muted-foreground",
-                  )}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setCreated(true)}
-            disabled={!leagueName}
-            className="w-full rounded-xl bg-primary py-3.5 font-heading text-base font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
-          >
-            Crear Liga
-          </button>
-        </section>
+      {joinedNotice && (
+        <p className="flex items-center gap-2 rounded-xl border border-arg/40 bg-arg/10 px-3 py-2.5 text-sm text-arg">
+          <Check className="size-4" /> ¡Te uniste! Ya podés cargar tu predicción.
+        </p>
       )}
 
-      {tab === "crear" && created && (
+      {tab === "mis" &&
+        (leaguesLoading ? (
+          <p className="text-center text-sm text-muted-foreground">Cargando ligas...</p>
+        ) : (
+          <MyLeagues drivers={drivers} />
+        ))}
+
+      {tab === "crear" && !createdLeague && (
+        <CreateLeagueForm
+          drivers={drivers}
+          teams={teams}
+          gridDrivers={gridDrivers}
+          gridTeams={gridTeams}
+          onCreated={(league) => {
+            setCreatedLeague(league)
+            reload(league.id)
+          }}
+        />
+      )}
+
+      {tab === "crear" && createdLeague && (
         <section className="space-y-4 rounded-2xl border border-arg/40 bg-card p-4 animate-in fade-in">
           <div className="flex items-center gap-2 text-arg">
             <Check className="size-5" />
             <p className="font-heading text-lg font-bold uppercase">¡Liga creada!</p>
           </div>
           <p className="text-sm text-muted-foreground">
-            Compartí el código o el link para invitar a tus amigos a <strong className="text-foreground">{leagueName}</strong>.
+            Compartí el código o el link para invitar a tus amigos a{" "}
+            <strong className="text-foreground">{createdLeague.name}</strong>. Lo tenés siempre en Mis Ligas.
           </p>
-
-          <div>
-            <p className="mb-1.5 text-xs uppercase tracking-wider text-muted-foreground">
-              Código de invitación
-            </p>
-            <button
-              type="button"
-              onClick={() => copy(league.inviteCode)}
-              className="flex w-full items-center justify-between rounded-xl border border-dashed border-border bg-background px-4 py-3"
-            >
-              <span className="font-mono text-lg font-bold tracking-[0.2em]">
-                {league.inviteCode}
-              </span>
-              {copied ? (
-                <Check className="size-4 text-arg" />
-              ) : (
-                <Copy className="size-4 text-muted-foreground" />
-              )}
-            </button>
-          </div>
-
-          <div>
-            <p className="mb-1.5 text-xs uppercase tracking-wider text-muted-foreground">
-              Link para compartir
-            </p>
-            <div className="flex gap-2">
-              <span className="flex-1 truncate rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-muted-foreground">
-                {shareLink}
-              </span>
-              <button
-                type="button"
-                onClick={() => copy(shareLink)}
-                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-medium"
-              >
-                <Share2 className="size-4" /> Copiar
-              </button>
-            </div>
-          </div>
+          <InviteShare leagueName={createdLeague.name} inviteCode={createdLeague.inviteCode} />
         </section>
       )}
 
       {tab === "unirse" && (
-        <section className="space-y-4 rounded-2xl border border-border bg-card p-4">
-          <div className="flex flex-col items-center py-2 text-center">
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-arg/15 text-arg">
-              <Users className="size-6" />
-            </span>
-            <p className="mt-2 font-heading text-lg font-bold uppercase">Unirse a una Liga</p>
-            <p className="text-sm text-muted-foreground">
-              Pedile el código de invitación a quien creó la liga.
-            </p>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Código de invitación</label>
-            <input
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="PRODE-XXXX"
-              className="w-full rounded-xl border border-border bg-background px-3 py-3 text-center font-mono text-lg font-bold tracking-[0.2em] outline-none focus:border-primary placeholder:tracking-normal placeholder:text-muted-foreground"
-            />
-          </div>
-          <button
-            type="button"
-            disabled={joinCode.length < 4}
-            className="w-full rounded-xl bg-primary py-3.5 font-heading text-base font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
-          >
-            Unirme a la Liga
-          </button>
-        </section>
+        <JoinLeagueForm
+          initialCode={initialCode}
+          onJoined={(leagueId) => {
+            reload(leagueId)
+            setSelectedTab("mis")
+            setJoinedNotice(true)
+          }}
+        />
       )}
     </div>
   )

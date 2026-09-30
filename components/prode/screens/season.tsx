@@ -2,23 +2,26 @@
 
 import { useState } from "react"
 import { ArrowLeft, Lock, Crown, Wrench, Check } from "lucide-react"
-import { useNav } from "@/components/prode/nav-context"
+import { useRouter } from "next/navigation"
 import { DriverPicker, DriverSlot } from "@/components/prode/driver-picker"
-import { teams } from "@/lib/f1-data"
+import { useDrivers } from "@/hooks/use-drivers"
+import { useTeams } from "@/hooks/use-teams"
 import { cn } from "@/lib/utils"
 
 export function Season() {
-  const { navigate } = useNav()
+  const router = useRouter()
   const [champion, setChampion] = useState<string | undefined>()
   const [constructor, setConstructor] = useState<string | undefined>()
   const [pickerOpen, setPickerOpen] = useState(false)
   const [saved, setSaved] = useState(false)
+  const { drivers } = useDrivers()
+  const { teams } = useTeams()
 
   return (
     <div className="space-y-5 px-4 py-5">
       <button
         type="button"
-        onClick={() => navigate("inicio")}
+        onClick={() => router.push("/home")}
         className="flex items-center gap-1 text-sm text-muted-foreground"
       >
         <ArrowLeft className="size-4" /> Volver
@@ -50,6 +53,8 @@ export function Season() {
           </div>
         </div>
         <DriverSlot
+          drivers={drivers}
+          teams={teams}
           driverId={champion}
           placeholder="Seleccionar piloto"
           onClick={() => setPickerOpen(true)}
@@ -82,7 +87,7 @@ export function Season() {
                   : "border-border bg-background hover:bg-secondary",
               )}
             >
-              <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: t.color }} />
+              <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: t.colour }} />
               <span className="truncate font-medium">{t.name}</span>
             </button>
           ))}
@@ -93,7 +98,7 @@ export function Season() {
         type="button"
         onClick={() => {
           setSaved(true)
-          setTimeout(() => navigate("inicio"), 1100)
+          setTimeout(() => router.push("/home"), 1100)
         }}
         disabled={!champion || !constructor}
         className={cn(
@@ -111,6 +116,8 @@ export function Season() {
       </button>
 
       <DriverPicker
+        drivers={drivers}
+        teams={teams}
         open={pickerOpen}
         title="Campeón de Pilotos"
         value={champion}
