@@ -256,7 +256,7 @@ export function PredictionForm({
               aria-label={`${i} abandonos`}
               className={cn(
                 "h-1.5 flex-1 rounded-full transition-colors disabled:cursor-not-allowed",
-                i <= dnf ? "bg-primary" : "bg-secondary",
+                i < dnf ? "bg-primary" : "bg-secondary",
               )}
             />
           ))}
