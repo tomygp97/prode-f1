@@ -268,6 +268,7 @@ export function PredictionForm({
         <TrackedDriverPrediction
           items={trackedDriverItems}
           onPositionChange={handleTrackedDriverPositionChange}
+          maxPosition={drivers.length}
           disabled={readOnly}
         />
       )}
