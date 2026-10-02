@@ -8,11 +8,11 @@ import { DriverAvatar } from "../driver-avatar";
 interface TrackedDriverPredictionProps {
     items: TrackedDriverItem[]
     onPositionChange: (leagueId: string, position: number) => void
-    /** Solo lectura (predicciones cerradas) */
+    maxPosition: number
     disabled?: boolean
-  }
+}
 
-export const TrackedDriverPrediction = ({ items, onPositionChange, disabled = false }: TrackedDriverPredictionProps) => {
+export const TrackedDriverPrediction = ({ items, onPositionChange, maxPosition, disabled = false }: TrackedDriverPredictionProps) => {
     return (
         <section className="space-y-3">
           {items.map((item) => (
@@ -63,7 +63,7 @@ export const TrackedDriverPrediction = ({ items, onPositionChange, disabled = fa
                   </div>
                 ) : (
                   <div className="flex gap-1.5 overflow-x-auto pb-1">
-                    {Array.from({ length: 20 }).map((_, i) => {
+                    {Array.from({ length: maxPosition }).map((_, i) => {
                       const position = i + 1
     
                       return (
