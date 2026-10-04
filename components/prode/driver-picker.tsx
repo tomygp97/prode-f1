@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { X, Search, Check } from "lucide-react"
 import { Driver, findTeam, fullName, Team } from "@/lib/f1-data"
 import { DriverAvatar } from "./driver-avatar"
-import { cn, displayColour } from "@/lib/utils"
+import { cn, displayColour, spreadTeamsByColour } from "@/lib/utils"
 
 type DriverPickerProps = {
   drivers: Driver[]
@@ -33,8 +33,14 @@ function DriverPickerSheet({
   onSelect,
 }: Omit<DriverPickerProps, "open">) {
   const [query, setQuery] = useState("")
+  const orderedTeams = useMemo(() => spreadTeamsByColour(teams), [teams])
+  const teamOrderIndex = useMemo(
+  () => new Map(orderedTeams.map((t, i) => [t.id, i])),
+  [orderedTeams],
+  )
 
-  const list = (drivers ?? []).filter((d) => {
+  const list = (drivers ?? [])
+  .filter((d) => {
     if (exclude.includes(d.id)) return false
     const q = query.toLowerCase()
     const team = findTeam(teams, d.teamId)
@@ -43,6 +49,12 @@ function DriverPickerSheet({
       d.acronym.toLowerCase().includes(q) ||
       (team?.name.toLowerCase().includes(q) ?? false)
     )
+  })
+  .sort((a, b) => {
+    const orderA = teamOrderIndex.get(a.teamId) ?? 999
+    const orderB = teamOrderIndex.get(b.teamId) ?? 999
+    if (orderA !== orderB) return orderA - orderB
+    return fullName(a).localeCompare(fullName(b))
   })
 
   return (

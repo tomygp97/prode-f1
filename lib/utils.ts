@@ -78,3 +78,75 @@ export function teamColourStyles(hex: string): {
     outerRing: muted ? '0 0 0 1px rgba(255,255,255,0.18)' : undefined,
   }
 }
+
+function hexToHsl(hex: string): { h: number; s: number; l: number } {
+  const clean = hex.replace("#", "")
+  const r = parseInt(clean.slice(0, 2), 16) / 255
+  const g = parseInt(clean.slice(2, 4), 16) / 255
+  const b = parseInt(clean.slice(4, 6), 16) / 255
+
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  const delta = max - min
+
+  if (delta === 0) return { h: 0, s: 0, l }
+
+  const s = l > 0.5 ? delta / (2 - max - min) : delta / (max + min)
+
+  let h: number
+  if (max === r) h = ((g - b) / delta) % 6
+  else if (max === g) h = (b - r) / delta + 2
+  else h = (r - g) / delta + 4
+
+  h *= 60
+  if (h < 0) h += 360
+
+  return { h, s, l }
+}
+
+function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b)
+}
+
+const GRAY_SATURATION_THRESHOLD = 0.15
+
+/**
+ * Ordena equipos de forma que colores parecidos queden espaciados entre sí.
+ * Los colores casi grises/blancos (baja saturación) se tratan aparte: el matiz
+ * no es confiable para distinguirlos, así que se reparten a intervalos parejos
+ * entre los equipos de color, para que nunca queden dos grises juntos.
+ */
+export function spreadTeamsByColour<T extends { colour: string }>(teams: T[]): T[] {
+  const n = teams.length
+  if (n <= 2) return teams
+
+  const withHsl = teams.map((t) => ({ team: t, ...hexToHsl(t.colour) }))
+
+  const colourful = withHsl.filter((t) => t.s >= GRAY_SATURATION_THRESHOLD).sort((a, b) => a.h - b.h)
+  const grayscale = withHsl.filter((t) => t.s < GRAY_SATURATION_THRESHOLD).sort((a, b) => a.l - b.l)
+
+  const spreadColourful = (() => {
+    const m = colourful.length
+    if (m <= 2) return colourful.map((x) => x.team)
+    let step = Math.floor(m / 2)
+    while (gcd(step, m) !== 1) step++
+    const result: typeof colourful = []
+    let idx = 0
+    for (let i = 0; i < m; i++) {
+      result.push(colourful[idx])
+      idx = (idx + step) % m
+    }
+    return result.map((x) => x.team)
+  })()
+
+  if (grayscale.length === 0) return spreadColourful
+
+  const result: T[] = [...spreadColourful]
+  grayscale.forEach((g, i) => {
+    const position = Math.round(((i + 1) * (result.length + 1)) / (grayscale.length + 1))
+    result.splice(Math.min(position, result.length), 0, g.team)
+  })
+
+  return result
+}
