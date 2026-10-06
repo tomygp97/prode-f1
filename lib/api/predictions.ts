@@ -42,11 +42,13 @@ export function submitPrediction(
     leagueId: string,
     raceId: string,
     body: SubmitPredictionRequest,
+    signal?: AbortSignal,
 ): Promise<Prediction> {
     return api.post<Prediction>(
         `/leagues/${leagueId}/races/${raceId}/predictions`,
         body,
-        token
+        token,
+        signal,
     )
 }
 
