@@ -35,7 +35,12 @@ export function Ranking() {
       ) : (
         <>
           <Podium standings={standings} />
-          <StandingsTable standings={standings} currentUserId={user?.id} />
+          {/* Tocar a alguien abre su predicción de la última carrera con resultados */}
+          <StandingsTable
+            standings={standings}
+            currentUserId={user?.id}
+            hrefFor={(userId) => (userId === user?.id ? "/results" : `/results?user=${userId}`)}
+          />
         </>
       )}
     </div>

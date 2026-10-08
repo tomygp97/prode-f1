@@ -1,11 +1,14 @@
 "use client"
 
 import { useMemo } from "react"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { useLeague } from "@/context/league-context"
 import { useLastResultsRace } from "@/hooks/use-last-results-race"
 import { useRaceResults } from "@/hooks/use-race-results"
 import { useMyRaceResult } from "@/hooks/use-my-race-result"
+import { useLeagueRacePredictions } from "@/hooks/use-league-race-predictions"
 import { useDrivers } from "@/hooks/use-drivers"
 import { useTeams } from "@/hooks/use-teams"
 import { toGrandPrix } from "@/lib/api/races"
@@ -15,9 +18,11 @@ import { ScoreBanner, ScoreBannerState } from "@/components/results/score-banner
 import { ComparisonCard } from "@/components/results/comparison-card"
 import { FactorTile } from "@/components/results/factor-tile"
 import { PointsBreakdown } from "@/components/results/points-breakdown"
+import { LeaguePredictionsList } from "@/components/results/league-predictions-list"
 
-export function Results() {
-  const { token } = useAuth()
+/** `viewedUserId`: ver la predicción de otro miembro de la liga activa (sin él, la mía). */
+export function Results({ viewedUserId }: { viewedUserId?: string }) {
+  const { token, user } = useAuth()
 
   const { activeLeague, isLoading: leaguesLoading, error: leaguesError } = useLeague()
   const { race, isLoading: raceLoading, error: raceError } = useLastResultsRace()
@@ -25,16 +30,28 @@ export function Results() {
   const { drivers, isLoading: driversLoading, error: driversError } = useDrivers()
   const { teams, isLoading: teamsLoading, error: teamsError } = useTeams()
   const {
-    prediction,
-    score,
+    prediction: myPrediction,
+    score: myScore,
     isLoading: myResultLoading,
     error: myResultError,
   } = useMyRaceResult(token, activeLeague?.league.id, race?.id)
+  const {
+    entries: leagueEntries,
+    isLoading: leagueEntriesLoading,
+    error: leagueEntriesError,
+  } = useLeagueRacePredictions(token, activeLeague?.league.id, race?.id)
+
+  const viewingOther = !!viewedUserId && viewedUserId !== user?.id
+  const viewedEntry = viewingOther ? leagueEntries.find((entry) => entry.userId === viewedUserId) : undefined
+  const prediction = viewingOther ? (viewedEntry?.prediction ?? null) : myPrediction
+  const score = viewingOther ? (viewedEntry?.score ?? null) : myScore
 
   const isLoading =
-    leaguesLoading || raceLoading || resultsLoading || driversLoading || teamsLoading || myResultLoading
+    leaguesLoading || raceLoading || resultsLoading || driversLoading || teamsLoading || myResultLoading ||
+    (viewingOther && leagueEntriesLoading)
   const fetchError =
-    leaguesError ?? raceError ?? resultsError ?? driversError ?? teamsError ?? myResultError
+    leaguesError ?? raceError ?? resultsError ?? driversError ?? teamsError ?? myResultError ??
+    (viewingOther ? leagueEntriesError : null)
 
   // Sin liga activa se muestra igual el resultado oficial, con el top 3 por defecto
   const league = activeLeague?.league
@@ -73,6 +90,22 @@ export function Results() {
 
   const gp = toGrandPrix(results.race)
 
+  const backToMine = viewingOther && (
+    <Link href="/results" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+      <ArrowLeft className="size-4" /> Volver a mis resultados
+    </Link>
+  )
+
+  // Otro usuario que no está (o ya no está) en la liga activa
+  if (viewingOther && !viewedEntry) {
+    return (
+      <div className="space-y-4 px-4 py-5">
+        {backToMine}
+        <p className="text-muted-foreground">Ese usuario no está en tu liga activa.</p>
+      </div>
+    )
+  }
+
   const bannerState: ScoreBannerState = !league
     ? { kind: "no-league" }
     : !prediction
@@ -88,15 +121,17 @@ export function Results() {
 
   return (
     <div className="space-y-5 px-4 py-5">
+      {backToMine}
       <ResultsHeader gp={gp} />
 
-      <ScoreBanner state={bannerState} />
+      <ScoreBanner state={bannerState} name={viewedEntry?.name} />
 
       <ComparisonCard
         comparison={comparison}
         drivers={raceDrivers}
         teams={teams}
         showPrediction={prediction !== null}
+        predictionTitle={viewedEntry ? `Predicción de ${viewedEntry.name}` : undefined}
       />
 
       <div className={trackedDriver ? "grid grid-cols-3 gap-3" : "grid grid-cols-2 gap-3"}>
@@ -124,6 +159,15 @@ export function Results() {
 
       {score && prediction && (
         <PointsBreakdown score={score} comparison={comparison} acronymOf={acronymOf} />
+      )}
+
+      {league && leagueEntries.length > 0 && (
+        <LeaguePredictionsList
+          entries={leagueEntries}
+          currentUserId={user?.id}
+          selectedUserId={viewingOther ? viewedUserId : user?.id}
+          hrefFor={(userId) => (userId === user?.id ? "/results" : `/results?user=${userId}`)}
+        />
       )}
     </div>
   )
