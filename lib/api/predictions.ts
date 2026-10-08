@@ -42,11 +42,13 @@ export function submitPrediction(
     leagueId: string,
     raceId: string,
     body: SubmitPredictionRequest,
+    signal?: AbortSignal,
 ): Promise<Prediction> {
     return api.post<Prediction>(
         `/leagues/${leagueId}/races/${raceId}/predictions`,
         body,
-        token
+        token,
+        signal,
     )
 }
 
@@ -69,6 +71,31 @@ export function fetchMyPredictionScore(
 ): Promise<PredictionScore | null> {
     return api.get<PredictionScore | null>(
         `/leagues/${leagueId}/races/${raceId}/predictions/score`,
+        token
+    )
+}
+
+// Predicción y puntos de un miembro de la liga (prediction null = no cargó; score null = sin puntos todavía)
+export interface LeaguePredictionEntry {
+    userId: string
+    name: string
+    prediction: Prediction | null
+    score: PredictionScore | null
+}
+
+export interface LeagueRacePredictions {
+    raceId: string
+    entries: LeaguePredictionEntry[] // ordenadas por puntos; los que no cargaron, al final
+}
+
+// Todos los miembros activos de la liga. El back responde 403 mientras las predicciones estén abiertas
+export function fetchLeagueRacePredictions(
+    token: string,
+    leagueId: string,
+    raceId: string,
+): Promise<LeagueRacePredictions> {
+    return api.get<LeagueRacePredictions>(
+        `/leagues/${leagueId}/races/${raceId}/predictions`,
         token
     )
 }

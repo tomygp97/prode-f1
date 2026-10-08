@@ -10,6 +10,7 @@ import { RaceFromApi, toGrandPrix } from "@/lib/api/races"
 import { getWeekendPhase, WeekendPhase } from "@/lib/races/weekend"
 import { cn } from "@/lib/utils"
 import { PredictionForm } from "@/components/prediction/prediction-form"
+import { CurrentRaceLeaguePredictions } from "@/components/prediction/current-race-league-predictions"
 
 const lockedNotice: Record<WeekendPhase, string> = {
   qualifying: "Se está corriendo la clasificación: tu predicción ya no se puede cambiar.",
@@ -103,6 +104,9 @@ export function Predictions({ initialTab }: { initialTab?: Tab }) {
         readOnly={tab === "current"}
         notice={tab === "current" ? lockedNotice[getWeekendPhase(race, now)] : undefined}
       />
+
+      {/* Las de los demás, solo cuando ya no se pueden cambiar */}
+      {tab === "current" && <CurrentRaceLeaguePredictions key={race.id} raceId={race.id} />}
     </div>
   )
 }

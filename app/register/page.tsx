@@ -27,7 +27,7 @@ export default function RegisterPage({
     setError(null);
     setIsSubmitting(true);
     try {
-      await register(email, password, name);
+      await register(email.trim(), password, name);
       router.replace(next ?? '/');
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'No se pudo conectar con el servidor');
@@ -63,6 +63,10 @@ export default function RegisterPage({
           <label className="text-sm text-neutral-400">Email</label>
           <input
             type="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
