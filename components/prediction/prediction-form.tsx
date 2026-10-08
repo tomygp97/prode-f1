@@ -12,6 +12,7 @@ import {
   Check,
   Minus,
   Plus,
+  X,
 } from "lucide-react"
 import { DriverPicker, DriverSlot } from "@/components/prode/driver-picker"
 import { TrackedDriverPrediction } from "@/components/prode/screens/tracked-driver-prediction"
@@ -76,6 +77,7 @@ export function PredictionForm({
     setSafetyCar,
     setDnf,
     handleSelect,
+    handleClearOrderSlot,
     handleTrackedDriverPositionChange,
   } = usePredictionForm({ raceId: race.id, leagues, predictions })
 
@@ -181,19 +183,33 @@ export function PredictionForm({
       <SectionCard icon={ListOrdered} title="Orden de Carrera" subtitle="No se pueden repetir pilotos.">
         <div className="space-y-2">
           {Array.from({ length: maxPredictionSlots }).map((_, i) => (
-            <DriverSlot
-              key={i}
-              drivers={drivers}
-              teams={teams}
-              position={`P${i + 1}`}
-              driverId={predictedOrder[i]}
-              placeholder={`Seleccionar P${i + 1}`}
-              disabled={readOnly}
-              onClick={() => setPicker({ kind: "predictedOrder", index: i })}
-            />
+            <div key={i} className="flex items-center gap-2">
+              <div className="flex-1">
+                <DriverSlot
+                  drivers={drivers}
+                  teams={teams}
+                  position={`P${i + 1}`}
+                  driverId={predictedOrder[i]}
+                  placeholder={`Seleccionar P${i + 1}`}
+                  disabled={readOnly}
+                  onClick={() => setPicker({ kind: "predictedOrder", index: i })}
+                />
+              </div>
+              {!readOnly && predictedOrder[i] && (
+                <button
+                  type="button"
+                  onClick={() => handleClearOrderSlot(i)}
+                  className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-secondary hover:text-primary"
+                  aria-label={`Quitar piloto de P${i + 1}`}
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </SectionCard>
+     
 
       {/* Safety Car */}
       <SectionCard icon={ShieldAlert} title="Safety Car" subtitle="¿Habrá Safety Car durante la carrera?">

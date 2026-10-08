@@ -11,7 +11,6 @@ type PickerState =
   | null
 
 type UsePredictionFormParams = {
-  /** Carrera que se predice: al cambiar, los cambios sin guardar de otra carrera se descartan. */
   raceId: string | undefined
   leagues: UserLeague[]
   predictions: Record<string, Prediction | null>
@@ -19,11 +18,12 @@ type UsePredictionFormParams = {
 
 const DEFAULT_DNF = 2
 
-// Lo que el usuario tocó (lo que no tocó sale de la predicción guardada)
+// Lo que el usuario tocó (lo que no tocó sale de la predicción guardada).
+// `null` en order[i] significa "el usuario lo vació a propósito", distinto de no tener la clave.
 type Edits = {
   raceId: string | undefined
   pole?: string
-  order: Record<number, string>
+  order: Record<number, string | null>
   safetyCar?: boolean
   dnf?: number
   trackedPositions: Record<string, number>
@@ -31,7 +31,6 @@ type Edits = {
 
 const noEdits = (raceId: string | undefined): Edits => ({ raceId, order: {}, trackedPositions: {} })
 
-// Predicción guardada de referencia: la de la liga con más posiciones (la más completa)
 function savedFormValues(leagues: UserLeague[], predictions: Record<string, Prediction | null>) {
   let base: { prediction: Prediction; slots: number } | null = null
   const trackedPositions: Record<string, number> = {}
@@ -57,10 +56,6 @@ function savedFormValues(leagues: UserLeague[], predictions: Record<string, Pred
   }
 }
 
-/**
- * Estado del formulario de predicción. Lo guardado se deriva de `predictions` y lo editado
- * se guarda aparte, así una recarga de las predicciones nunca pisa lo que el usuario cargó.
- */
 export function usePredictionForm({
   raceId,
   leagues,
@@ -69,7 +64,6 @@ export function usePredictionForm({
   const [storedEdits, setEdits] = useState<Edits>(() => noEdits(raceId))
   const [picker, setPicker] = useState<PickerState>(null)
 
-  // Cambios de otra carrera no aplican a esta
   const edits = storedEdits.raceId === raceId ? storedEdits : noEdits(raceId)
   const updateEdits = (change: (current: Edits) => Partial<Edits>) =>
     setEdits((prev) => {
@@ -86,10 +80,15 @@ export function usePredictionForm({
   const pole = edits.pole ?? saved.pole
   const safetyCar = edits.safetyCar ?? saved.safetyCar
   const dnf = edits.dnf ?? saved.dnf
-  // Siempre del largo de la liga con más posiciones
+
+  // Si edits.order[index] es null (vaciado a propósito), queda undefined en vez de caer en lo guardado
   const predictedOrder: (string | undefined)[] = Array.from(
     { length: maxPredictionSlots },
-    (_, index) => edits.order[index] ?? saved.order[index],
+    (_, index) => {
+      const edited = edits.order[index]
+      if (edited === null) return undefined
+      return edited ?? saved.order[index]
+    },
   )
   const manualTrackedDriverPositions = { ...saved.trackedPositions, ...edits.trackedPositions }
 
@@ -97,7 +96,6 @@ export function usePredictionForm({
     updateEdits(() => ({ safetyCar: value }))
   }
 
-  // Misma firma que un setState (acepta valor o función), como lo usa la pantalla
   function setDnf(value: SetStateAction<number>) {
     updateEdits((current) => {
       const previous = current.dnf ?? saved.dnf
@@ -117,6 +115,11 @@ export function usePredictionForm({
       const index = picker.index
       updateEdits((current) => ({ order: { ...current.order, [index]: id } }))
     }
+  }
+
+  // Vacía una posición del Orden de Carrera, sin que vuelva a mostrar lo guardado
+  function handleClearOrderSlot(index: number) {
+    updateEdits((current) => ({ order: { ...current.order, [index]: null } }))
   }
 
   function handleTrackedDriverPositionChange(
@@ -145,6 +148,7 @@ export function usePredictionForm({
     setDnf,
 
     handleSelect,
+    handleClearOrderSlot,
     handleTrackedDriverPositionChange,
   }
 }
