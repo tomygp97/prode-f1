@@ -16,15 +16,13 @@ export function ScoringSummary({
   const trackedName = trackedDriverAcronyms.join(" / ")
 
   const rows: ScoringRow[] = [
-    { label: `${topLabel} — ganador exacto (P1)`, points: P.WINNER_EXACT },
-    { label: `${topLabel} — posición exacta (P2 en adelante)`, points: P.POSITION_EXACT },
-    { label: `${topLabel} — a una posición de diferencia`, points: P.POSITION_OFF_BY_ONE },
-    { label: "Pole Position correcta", points: P.POLE_EXACT },
-    { label: "Safety Car correcto", points: P.SAFETY_CAR_EXACT },
-    { label: "DNF — cantidad exacta", points: P.DNF_EXACT },
-    { label: "DNF — a uno de diferencia", points: P.DNF_OFF_BY_ONE },
-  ]
-
+  { label: `${topLabel} — posición exacta`, points: P.POSITION_EXACT },
+  { label: `${topLabel} — a una posición de diferencia`, points: P.POSITION_OFF_BY_ONE },
+  { label: "Pole Position correcta", points: P.POLE_EXACT },
+  { label: "Safety Car correcto", points: P.SAFETY_CAR_EXACT },
+  { label: "DNF — cantidad exacta", points: P.DNF_EXACT },
+  { label: "DNF — a uno de diferencia", points: P.DNF_OFF_BY_ONE },
+]
   if (trackedDriverAcronyms.length > 0) {
     rows.push(
       { label: `${trackedName} — posición exacta`, points: P.TRACKED_DRIVER_EXACT },
