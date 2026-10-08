@@ -19,15 +19,7 @@ export const metadata: Metadata = {
   title: 'Prode F1 — Liga de predicciones de Fórmula 1',
   description:
     'Competí con tus amigos prediciendo cada Gran Premio de Fórmula 1. Pole, Top 5, Safety Car, DNF y la posición de Franco Colapinto.',
-  generator: 'v0.app',
-  icons: {
-    icon: [
-      { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },
-      { url: '/icon-dark-32x32.png', media: '(prefers-color-scheme: dark)' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
-    ],
-    apple: '/apple-icon.png',
-  },
+  // Íconos: app/favicon.ico, app/icon.png y app/apple-icon.png (convención de archivos de Next)
 }
 
 export const viewport: Viewport = {

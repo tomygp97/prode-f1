@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { useAuth } from "@/context/auth-context"
 import { useLeague } from "@/context/league-context"
 import {
@@ -12,6 +12,9 @@ import {
   Check,
   Minus,
   Plus,
+  X,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 import { DriverPicker, DriverSlot } from "@/components/prode/driver-picker"
 import { TrackedDriverPrediction } from "@/components/prode/screens/tracked-driver-prediction"
@@ -76,6 +79,7 @@ export function PredictionForm({
     setSafetyCar,
     setDnf,
     handleSelect,
+    handleClearOrderSlot,
     handleTrackedDriverPositionChange,
   } = usePredictionForm({ raceId: race.id, leagues, predictions })
 
@@ -181,19 +185,33 @@ export function PredictionForm({
       <SectionCard icon={ListOrdered} title="Orden de Carrera" subtitle="No se pueden repetir pilotos.">
         <div className="space-y-2">
           {Array.from({ length: maxPredictionSlots }).map((_, i) => (
-            <DriverSlot
-              key={i}
-              drivers={drivers}
-              teams={teams}
-              position={`P${i + 1}`}
-              driverId={predictedOrder[i]}
-              placeholder={`Seleccionar P${i + 1}`}
-              disabled={readOnly}
-              onClick={() => setPicker({ kind: "predictedOrder", index: i })}
-            />
+            <div key={i} className="flex items-center gap-2">
+              <div className="flex-1">
+                <DriverSlot
+                  drivers={drivers}
+                  teams={teams}
+                  position={`P${i + 1}`}
+                  driverId={predictedOrder[i]}
+                  placeholder={`Seleccionar P${i + 1}`}
+                  disabled={readOnly}
+                  onClick={() => setPicker({ kind: "predictedOrder", index: i })}
+                />
+              </div>
+              {!readOnly && predictedOrder[i] && (
+                <button
+                  type="button"
+                  onClick={() => handleClearOrderSlot(i)}
+                  className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-secondary hover:text-primary"
+                  aria-label={`Quitar piloto de P${i + 1}`}
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </SectionCard>
+     
 
       {/* Safety Car */}
       <SectionCard icon={ShieldAlert} title="Safety Car" subtitle="¿Habrá Safety Car durante la carrera?">
@@ -285,12 +303,17 @@ export function PredictionForm({
             type="button"
             onClick={savePrediction}
             disabled={isSaving}
+            aria-busy={isSaving}
             className={cn(
-              "flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-heading text-base font-bold uppercase tracking-wide transition-all active:scale-[0.98]",
+              "flex w-full items-center justify-center gap-2 rounded-xl py-3.5 font-heading text-base font-bold uppercase tracking-wide transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 disabled:active:scale-100",
               saved ? "bg-arg text-arg-foreground" : "bg-primary text-primary-foreground",
             )}
           >
-            {saved ? (
+            {isSaving ? (
+              <>
+                <Loader2 className="size-5 animate-spin" /> Guardando…
+              </>
+            ) : saved ? (
               <>
                 <Check className="size-5" /> Predicción Guardada
               </>
@@ -298,11 +321,7 @@ export function PredictionForm({
               "Guardar Predicción"
             )}
           </button>
-          {saveError && (
-            <p className="-mt-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2.5 text-center text-sm text-primary">
-              {saveError}
-            </p>
-          )}
+          {saveError && <SaveErrorAlert message={saveError} />}
 
           <DriverPicker
             drivers={drivers}
@@ -316,6 +335,26 @@ export function PredictionForm({
           />
         </>
       )}
+    </div>
+  )
+}
+
+// Error al guardar: se lleva a la vista para que no pase desapercibido en pantallas chicas
+function SaveErrorAlert({ message }: { message: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+  }, [message])
+
+  return (
+    <div
+      ref={ref}
+      role="alert"
+      className="-mt-2 flex items-start gap-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2.5 text-sm text-primary"
+    >
+      <AlertCircle className="mt-0.5 size-4 shrink-0" />
+      <p>{message}</p>
     </div>
   )
 }

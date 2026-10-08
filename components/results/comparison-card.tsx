@@ -11,17 +11,19 @@ function ColumnLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Mi predicción vs. resultado oficial: pole + top N (N = predictionSlots de la liga)
+// Una predicción (la mía o la de otro miembro) vs. resultado oficial: pole + top N (N = predictionSlots de la liga)
 export function ComparisonCard({
   comparison,
   drivers,
   teams,
   showPrediction,
+  predictionTitle = "Mi Predicción",
 }: {
   comparison: ResultComparison
   drivers: Driver[]
   teams: Team[]
   showPrediction: boolean
+  predictionTitle?: string
 }) {
   const topLabel = `Top ${comparison.order.length}`
 
@@ -51,7 +53,7 @@ export function ComparisonCard({
     <div className="grid grid-cols-2 gap-3">
       <div className="rounded-2xl border border-border bg-card p-3">
         <h2 className="mb-2 font-heading text-sm font-bold uppercase text-muted-foreground">
-          Mi Predicción
+          {predictionTitle}
         </h2>
         <ColumnLabel>Pole</ColumnLabel>
         <ResultDriverLine

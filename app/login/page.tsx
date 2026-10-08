@@ -29,7 +29,7 @@ export default function LoginPage({
     setError(null);
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       router.replace(next ?? '/');
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'No se pudo conectar con el servidor');
@@ -57,6 +57,10 @@ export default function LoginPage({
           <label className="text-sm text-neutral-400">Email</label>
           <input
             type="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
