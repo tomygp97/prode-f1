@@ -56,6 +56,6 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
 
 export const api = {
   get: <T>(path: string, token?: string | null) => request<T>(path, { method: 'GET' }, token),
-  post: <T>(path: string, body: unknown, token?: string | null) =>
-    request<T>(path, { method: 'POST', body: JSON.stringify(body) }, token),
+  post: <T>(path: string, body: unknown, token?: string | null, signal?: AbortSignal) =>
+    request<T>(path, { method: 'POST', body: JSON.stringify(body), signal }, token),
 };
