@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context"
 import { useLeague } from "@/context/league-context"
 import { useLeagueStandings } from "@/hooks/use-league-standings"
 import { cn, initials } from "@/lib/utils"
+import { ProfileStatsSkeleton } from "@/components/skeletons/screen-skeletons"
 
 function Stat({
   icon: Icon,
@@ -80,7 +81,7 @@ export function Profile() {
 
       {/* Stats grid */}
       {isLoading ? (
-        <p className="text-center text-sm text-muted-foreground">Cargando estadísticas...</p>
+        <ProfileStatsSkeleton />
       ) : !activeLeague ? (
         <p className="text-center text-sm text-muted-foreground">
           Todavía no estás en ninguna liga. Creá o unite a una desde &quot;Mis Ligas&quot;.
