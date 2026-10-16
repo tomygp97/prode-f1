@@ -15,6 +15,8 @@ export default function LoginPage({
   const params = use(searchParams);
   // /login?expired=1: la sesión venció (lo manda AuthProvider)
   const sessionExpired = params.expired === '1';
+  // /login?reset=1: viene de /reset-password
+  const passwordReset = params.reset === '1';
   // /login?next=/leagues?code=ABC123: después de ingresar se vuelve ahí (ej. link de invitación)
   const next = safeNextPath(params.next);
   const router = useRouter();
@@ -50,6 +52,11 @@ export default function LoginPage({
         )}
         {sessionExpired && !error && (
           <p className="rounded-md bg-neutral-800 px-3 py-2 text-sm text-neutral-300">Tu sesión expiró. Volvé a ingresar.</p>
+        )}
+        {passwordReset && !error && (
+          <p className="rounded-md bg-emerald-950 px-3 py-2 text-sm text-emerald-300">
+            Contraseña actualizada. Ingresá con la nueva.
+          </p>
         )}
         {error && <p className="rounded-md bg-red-950 px-3 py-2 text-sm text-red-400">{error}</p>}
 
@@ -92,6 +99,9 @@ export default function LoginPage({
           <Link href={withNext('/register', next)} className="text-white underline">
             Registrate
           </Link>
+        </p>
+        <p className="text-center text-xs text-neutral-500">
+          ¿Olvidaste tu contraseña? Pedile al admin de la app un link para restablecerla.
         </p>
       </form>
     </div>
