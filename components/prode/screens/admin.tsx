@@ -7,6 +7,7 @@ import { ArrowLeft, ShieldCheck } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { useMe } from "@/hooks/use-me"
 import { PasswordResetLinkTool } from "@/components/admin/password-reset-link-tool"
+import { Skeleton, SkeletonCard, SkeletonRegion } from "@/components/ui/skeleton"
 
 /**
  * Panel de admin de la APP (users.app_role = ADMIN, los devs): no tiene que ver con ser
@@ -23,7 +24,16 @@ export function Admin() {
   }, [isLoading, isAppAdmin, router])
 
   if (isLoading || !isAppAdmin) {
-    return <div className="px-4 py-5 text-muted-foreground">Cargando...</div>
+    return (
+      <SkeletonRegion label="Cargando panel de admin…" className="space-y-5 px-4 py-5">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-8 w-56" />
+        <SkeletonCard className="space-y-3">
+          <Skeleton className="h-8 w-2/3" />
+          <Skeleton className="h-11 w-full rounded-xl" />
+        </SkeletonCard>
+      </SkeletonRegion>
+    )
   }
 
   return (

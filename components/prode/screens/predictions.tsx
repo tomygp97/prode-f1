@@ -11,6 +11,7 @@ import { getWeekendPhase, WeekendPhase } from "@/lib/races/weekend"
 import { cn } from "@/lib/utils"
 import { PredictionForm } from "@/components/prediction/prediction-form"
 import { CurrentRaceLeaguePredictions } from "@/components/prediction/current-race-league-predictions"
+import { PredictionFormSkeleton } from "@/components/skeletons/screen-skeletons"
 
 const lockedNotice: Record<WeekendPhase, string> = {
   qualifying: "Se está corriendo la clasificación: tu predicción ya no se puede cambiar.",
@@ -32,7 +33,11 @@ export function Predictions({ initialTab }: { initialTab?: Tab }) {
   const [selectedTab, setSelectedTab] = useState<Tab | null>(initialTab ?? null)
 
   if (leaguesLoading || racesLoading) {
-    return <div className="px-4 py-5 text-muted-foreground">Cargando...</div>
+    return (
+      <div className="px-4 py-5">
+        <PredictionFormSkeleton />
+      </div>
+    )
   }
   const fetchError = leaguesError ?? racesError
   if (fetchError) return <div className="px-4 py-5 text-primary">{fetchError}</div>

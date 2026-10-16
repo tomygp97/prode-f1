@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context"
 import { useLeague } from "@/context/league-context"
 import { useLeagueStandings } from "@/hooks/use-league-standings"
 import { cn, initials } from "@/lib/utils"
+import { ProfileStatsSkeleton } from "@/components/skeletons/screen-skeletons"
 import { ChangePasswordForm } from "@/components/profile/change-password-form"
 import { useMe } from "@/hooks/use-me"
 import Link from "next/link"
@@ -84,7 +85,7 @@ export function Profile() {
 
       {/* Stats grid */}
       {isLoading ? (
-        <p className="text-center text-sm text-muted-foreground">Cargando estadísticas...</p>
+        <ProfileStatsSkeleton />
       ) : !activeLeague ? (
         <p className="text-center text-sm text-muted-foreground">
           Todavía no estás en ninguna liga. Creá o unite a una desde &quot;Mis Ligas&quot;.

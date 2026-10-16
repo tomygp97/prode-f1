@@ -7,6 +7,7 @@ import { AppHeader } from "@/components/prode/app-header"
 import { LeagueProvider } from "@/context/league-context"
 import { useAuth } from "@/context/auth-context"
 import { withNext } from "@/lib/auth/redirect"
+import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton"
 
 export default function MainLayout({
   children,
@@ -24,8 +25,19 @@ export default function MainLayout({
     }
   }, [isLoading, user, router])
 
+  // Mientras se lee la sesión (o se redirige al login): la estructura de la app, sin pantalla negra
   if (isLoading || !user) {
-    return null // o un spinner, si querés algo visual mientras carga
+    return (
+      <div className="mx-auto min-h-screen max-w-md bg-background pb-20">
+        <AppHeader />
+        <SkeletonRegion className="space-y-4 px-4 py-5">
+          <Skeleton className="h-7 w-2/3" />
+          <Skeleton className="h-40 w-full rounded-2xl" />
+          <Skeleton className="h-28 w-full rounded-2xl" />
+        </SkeletonRegion>
+        <BottomNav />
+      </div>
+    )
   }
 
   return (

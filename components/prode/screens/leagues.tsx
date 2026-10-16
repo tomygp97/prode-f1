@@ -14,6 +14,7 @@ import { MyLeagues } from "@/components/leagues/my-leagues"
 import { CreateLeagueForm } from "@/components/leagues/create-league-form"
 import { JoinLeagueForm } from "@/components/leagues/join-league-form"
 import { InviteShare } from "@/components/leagues/invite-share"
+import { LeaguesListSkeleton } from "@/components/skeletons/screen-skeletons"
 
 type Tab = "mis" | "crear" | "unirse"
 
@@ -85,7 +86,7 @@ export function Leagues({ initialCode }: { initialCode?: string }) {
 
       {tab === "mis" &&
         (leaguesLoading ? (
-          <p className="text-center text-sm text-muted-foreground">Cargando ligas...</p>
+          <LeaguesListSkeleton />
         ) : (
           <MyLeagues drivers={drivers} />
         ))}
