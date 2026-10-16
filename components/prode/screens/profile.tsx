@@ -1,11 +1,14 @@
 "use client"
 
-import { Trophy, Medal, TrendingUp, Star, Crown, LogOut } from "lucide-react"
+import { Trophy, Medal, TrendingUp, Star, Crown, LogOut, ShieldCheck } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { useLeague } from "@/context/league-context"
 import { useLeagueStandings } from "@/hooks/use-league-standings"
 import { cn, initials } from "@/lib/utils"
+import { ChangePasswordForm } from "@/components/profile/change-password-form"
+import { useMe } from "@/hooks/use-me"
+import Link from "next/link"
 
 function Stat({
   icon: Icon,
@@ -37,6 +40,7 @@ function Stat({
 export function Profile() {
   const { user, token, logout } = useAuth()
   const { activeLeague, isLoading: leaguesLoading } = useLeague()
+  const { isAppAdmin } = useMe(token)
   const router = useRouter()
 
   const { standings, isLoading: standingsLoading } = useLeagueStandings(token, activeLeague?.league.id)
@@ -97,6 +101,21 @@ export function Profile() {
           Todavía no tenés puntaje en {activeLeague.league.name} — cargá tu primer pronóstico.
         </p>
       )}
+
+      {/* Cuenta */}
+      <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
+        <h2 className="font-heading text-sm font-bold uppercase text-muted-foreground">Cuenta</h2>
+        <ChangePasswordForm />
+        {/* Solo admins de la app (los devs), no de una liga */}
+        {isAppAdmin && (
+          <Link
+            href="/admin"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-arg/40 bg-arg/10 py-3 text-sm font-semibold text-arg transition-colors hover:bg-arg/20"
+          >
+            <ShieldCheck className="size-4" /> Panel de admin
+          </Link>
+        )}
+      </section>
 
       {/* Logout */}
       <button
