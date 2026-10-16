@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context"
 import { useLeague } from "@/context/league-context"
 import { useLeagueStandings } from "@/hooks/use-league-standings"
 import { cn, initials } from "@/lib/utils"
+import { ChangePasswordForm } from "@/components/profile/change-password-form"
 
 function Stat({
   icon: Icon,
@@ -97,6 +98,12 @@ export function Profile() {
           Todavía no tenés puntaje en {activeLeague.league.name} — cargá tu primer pronóstico.
         </p>
       )}
+
+      {/* Cuenta */}
+      <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
+        <h2 className="font-heading text-sm font-bold uppercase text-muted-foreground">Cuenta</h2>
+        <ChangePasswordForm />
+      </section>
 
       {/* Logout */}
       <button
