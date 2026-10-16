@@ -9,6 +9,7 @@ import { NextGpCard } from "@/components/dashboard/next-gp-card"
 import { LiveRaceCard } from "@/components/dashboard/live-race-card"
 import { ResultsReadyBanner } from "@/components/dashboard/results-ready-banner"
 import { LeagueSummary } from "@/components/dashboard/league-summary"
+import { NextGpCardSkeleton } from "@/components/skeletons/screen-skeletons"
 
 export function Dashboard() {
   const router = useRouter()
@@ -20,7 +21,7 @@ export function Dashboard() {
       {/* Carreras: fin de semana en curso, resultados nuevos y próximo GP.
           Sin GP (fin de temporada) se sigue viendo la liga */}
       {isLoading ? (
-        <p className="text-muted-foreground">Cargando próximo GP...</p>
+        <NextGpCardSkeleton />
       ) : error ? (
         <p className="text-destructive">{error}</p>
       ) : (

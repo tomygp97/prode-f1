@@ -8,6 +8,7 @@ import { useLeagueStandings } from "@/hooks/use-league-standings"
 import { StandingEntry } from "@/lib/api/ranking"
 import { LeagueSwitcherButton } from "@/components/prode/active-league-switcher"
 import { StandingsTable } from "@/components/ranking/standings-table"
+import { LeagueSummarySkeleton } from "@/components/skeletons/screen-skeletons"
 
 const TOP = 5
 
@@ -27,7 +28,7 @@ export function LeagueSummary() {
   const { standings, isLoading, error } = useLeagueStandings(token, activeLeague?.league.id)
 
   if (leaguesLoading) {
-    return <p className="text-center text-sm text-muted-foreground">Cargando tu liga...</p>
+    return <LeagueSummarySkeleton />
   }
 
   if (!activeLeague) {
@@ -98,7 +99,7 @@ export function LeagueSummary() {
         </div>
 
         {isLoading ? (
-          <p className="text-center text-sm text-muted-foreground">Cargando ranking...</p>
+          <LeagueSummarySkeleton rowsOnly />
         ) : error ? (
           <p className="text-center text-sm text-primary">{error}</p>
         ) : top.length === 0 ? (

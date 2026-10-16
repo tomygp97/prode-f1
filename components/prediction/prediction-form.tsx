@@ -29,6 +29,7 @@ import { useRaceEntries } from "@/hooks/use-race-entries"
 import { useMyPredictions } from "@/hooks/use-my-predictions"
 import { usePredictionForm } from "@/hooks/use-prediction-form"
 import { useSavePrediction } from "@/hooks/use-save-prediction"
+import { PredictionFormSkeleton } from "@/components/skeletons/screen-skeletons"
 
 /**
  * Formulario de predicción de una carrera. Con `readOnly` (predicciones cerradas) muestra la
@@ -114,7 +115,7 @@ export function PredictionForm({
   })
 
   if (isLoading) {
-    return <div className="text-muted-foreground">Cargando...</div>
+    return <PredictionFormSkeleton />
   }
   if (fetchError) return <div className="text-primary">{fetchError}</div>
 

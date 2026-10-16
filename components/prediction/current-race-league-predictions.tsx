@@ -10,6 +10,7 @@ import { useTeams } from "@/hooks/use-teams"
 import { LeagueSwitcherButton } from "@/components/prode/active-league-switcher"
 import { LeaguePredictionsList } from "@/components/results/league-predictions-list"
 import { MemberPredictionCard } from "./member-prediction-card"
+import { LeagueRowsSkeleton } from "@/components/skeletons/screen-skeletons"
 
 /**
  * Carrera en curso (predicciones ya cerradas): qué predijo cada miembro de la liga activa.
@@ -35,7 +36,7 @@ export function CurrentRaceLeaguePredictions({ raceId }: { raceId: string }) {
   }, [gridDrivers, gridTeams, rosterDrivers, rosterTeams])
 
   if (!activeLeague || hidden) return null
-  if (isLoading) return <p className="text-sm text-muted-foreground">Cargando predicciones de la liga...</p>
+  if (isLoading) return <LeagueRowsSkeleton label="Cargando predicciones de la liga…" />
   if (error) return <p className="text-sm text-primary">{error}</p>
   if (entries.length === 0) return null
 
