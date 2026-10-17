@@ -22,7 +22,8 @@ export function ResultDriverLine({
   const teamColour = team?.colour ?? "#666"
 
   return (
-    <div className="flex items-center gap-2 py-1.5">
+    // min-h-12 = alto de una fila con avatar: una fila sin piloto ("—") no queda más baja que su par
+    <div className="flex min-h-12 items-center gap-2 py-1.5">
       {position && (
         <span className="w-6 shrink-0 text-center font-heading text-sm font-bold text-muted-foreground">
           {position}

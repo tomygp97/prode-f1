@@ -19,6 +19,7 @@ import { ComparisonCard } from "@/components/results/comparison-card"
 import { FactorTile } from "@/components/results/factor-tile"
 import { PointsBreakdown } from "@/components/results/points-breakdown"
 import { LeaguePredictionsList } from "@/components/results/league-predictions-list"
+import { ResultsSkeleton } from "@/components/skeletons/screen-skeletons"
 
 /** `viewedUserId`: ver la predicción de otro miembro de la liga activa (sin él, la mía). */
 export function Results({ viewedUserId }: { viewedUserId?: string }) {
@@ -76,7 +77,11 @@ export function Results({ viewedUserId }: { viewedUserId?: string }) {
   }, [drivers, results])
 
   if (isLoading) {
-    return <div className="px-4 py-5 text-muted-foreground">Cargando...</div>
+    return (
+      <div className="px-4 py-5">
+        <ResultsSkeleton />
+      </div>
+    )
   }
   if (fetchError) return <div className="px-4 py-5 text-primary">{fetchError}</div>
 

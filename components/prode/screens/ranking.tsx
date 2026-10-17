@@ -6,6 +6,7 @@ import { useLeagueStandings } from "@/hooks/use-league-standings"
 import { RankingHeader } from "@/components/ranking/ranking-header"
 import { Podium } from "@/components/ranking/podium"
 import { StandingsTable } from "@/components/ranking/standings-table"
+import { RankingSkeleton } from "@/components/skeletons/screen-skeletons"
 
 function Message({ children, tone = "muted" }: { children: React.ReactNode; tone?: "muted" | "error" }) {
   return (
@@ -25,7 +26,7 @@ export function Ranking() {
       <RankingHeader leagueName={activeLeague?.league.name} />
 
       {leaguesLoading || isLoading ? (
-        <Message>Cargando ranking...</Message>
+        <RankingSkeleton />
       ) : !activeLeague ? (
         <Message>Elegí una liga para ver el ranking.</Message>
       ) : error ? (

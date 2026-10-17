@@ -11,6 +11,13 @@ function ColumnLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
+const titleClass = "font-heading text-sm font-bold uppercase leading-tight"
+const officialTitle = (
+  <h2 className={`${titleClass} flex items-center gap-1`}>
+    <Flag className="size-3.5 text-primary" /> Oficial
+  </h2>
+)
+
 // Una predicción (la mía o la de otro miembro) vs. resultado oficial: pole + top N (N = predictionSlots de la liga)
 export function ComparisonCard({
   comparison,
@@ -27,11 +34,8 @@ export function ComparisonCard({
 }) {
   const topLabel = `Top ${comparison.order.length}`
 
-  const official = (
-    <div className="rounded-2xl border border-border bg-card p-3">
-      <h2 className="mb-2 flex items-center gap-1 font-heading text-sm font-bold uppercase">
-        <Flag className="size-3.5 text-primary" /> Oficial
-      </h2>
+  const officialCard = (
+    <div className="min-w-0 rounded-2xl border border-border bg-card p-3">
       <ColumnLabel>Pole</ColumnLabel>
       <ResultDriverLine drivers={drivers} teams={teams} driverId={comparison.pole.actual} />
       <ColumnLabel>{topLabel}</ColumnLabel>
@@ -47,14 +51,24 @@ export function ComparisonCard({
     </div>
   )
 
-  if (!showPrediction) return official
+  if (!showPrediction) {
+    return (
+      <div className="space-y-2">
+        {officialTitle}
+        {officialCard}
+      </div>
+    )
+  }
 
+  // Los títulos van en una fila propia, arriba de las tarjetas: si el de la predicción ocupa dos
+  // líneas (un nombre largo en el celular), crece la fila entera y las tarjetas siguen empezando
+  // a la misma altura, así P1 queda al lado de P1. "Oficial" se alinea con la última línea.
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <div className="rounded-2xl border border-border bg-card p-3">
-        <h2 className="mb-2 font-heading text-sm font-bold uppercase text-muted-foreground">
-          {predictionTitle}
-        </h2>
+    <div className="grid grid-cols-2 items-end gap-x-3 gap-y-2">
+      <h2 className={`${titleClass} min-w-0 text-muted-foreground`}>{predictionTitle}</h2>
+      {officialTitle}
+
+      <div className="min-w-0 self-start rounded-2xl border border-border bg-card p-3">
         <ColumnLabel>Pole</ColumnLabel>
         <ResultDriverLine
           drivers={drivers}
@@ -74,7 +88,7 @@ export function ComparisonCard({
           />
         ))}
       </div>
-      {official}
+      <div className="min-w-0 self-start">{officialCard}</div>
     </div>
   )
 }
